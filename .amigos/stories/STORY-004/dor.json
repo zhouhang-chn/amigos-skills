@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "story_id": "STORY-004",
+  "state": "ready",
+  "ready": true,
+  "declared_state": "draft",
+  "generated_at": "2026-09-13T01:55:36Z",
+  "generator": "amigos 0.1.0",
+  "checks": {
+    "intent_defined": true,
+    "scope_defined": true,
+    "constraints_defined": true,
+    "primary_scenario_present": true,
+    "counterexamples_present": true,
+    "assertions_are_determinable": true,
+    "blocking_questions_resolved": true
+  },
+  "failures": [],
+  "blocking_questions": [],
+  "scenarios": {
+    "primary": 2,
+    "counterexample": 5,
+    "total": 7
+  },
+  "contract_hash": {
+    "intent.md": "sha256:b3bd5780ea9770942a54e3e0bed9f5c7be44b8860bfbaf5285ad156b835bc8a2",
+    "constraints.md": "sha256:6859a3e1032c066d7bba3b488b33a6bd3e4fcb62849829244a3c317cc6d4e71f",
+    "acceptance.feature": "sha256:4bea8eb6df08ad3f7c05b1b60132a3f0bceb59cba3519cb7733042c4db6ae9b5",
+    "open-questions.md": "sha256:dc484877fa4e4cd0118c4acdf51c172ad2ad6ca8d16c6e7df928e1a4ed836d46"
+  }
+}

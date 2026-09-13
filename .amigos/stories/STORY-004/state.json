@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "story_id": "STORY-004",
+  "declared_state": "draft",
+  "updated_at": "2026-09-13T01:54:40Z",
+  "history": [
+    {
+      "state": "draft",
+      "at": "2026-09-13T01:54:40Z",
+      "note": "story workspace created"
+    }
+  ]
+}
