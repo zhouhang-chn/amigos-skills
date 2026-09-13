@@ -28,6 +28,7 @@ Execution docs live under [versions/](versions/), never directly under `docs/`.
 | [versions/v0.3-amigos-mvp/](versions/v0.3-amigos-mvp/) | Milestone 3: `/amigos`, so contracts are generated rather than hand-authored. |
 | [versions/v0.4-independent-subagents/](versions/v0.4-independent-subagents/) | Milestone 4: three roles drafting blind, and the count that decides whether the split earns its cost. |
 | [versions/v0.5-implement/](versions/v0.5-implement/) | Milestone 5: `/implement`, so a ready contract drives the work rather than being read once. |
+| [versions/v0.6-strong-enforcement/](versions/v0.6-strong-enforcement/) | Milestone 6: enforcement that does not depend on the agent it constrains, starting with the contract's baseline. |
 
 ## Two planning surfaces, one boundary
 

@@ -44,24 +44,34 @@ division `/amigos` uses, applied to the other half of the loop.
 
 ```text
 readiness   re-derived from the contract files      (never read from dor.json)
-contract    sha256 of each input file  vs  dor.json.contract_hash
+baseline    the parent of the earliest commit changing a governed path
+contract    each input file in the tree  vs  that revision, compared by git
 verified    ready and nothing changed
-exit        0 verified | 1 not verified | 2 no baseline, or unusable
+exit        0 verified | 1 not verified | 2 no committed contract, or unusable
 ```
 
 `verified` is computed and never stored. Adding a second persisted verdict
 would recreate the problem `dor.json` already has: a file that says a thing is
 true, writable by the agent it constrains.
 
-### The limit, stated on purpose
+### The baseline, and why it is not HEAD
 
-An agent that edits the contract **and then re-runs `amigos check`** rewrites the
-baseline, and `verify` passes. Detecting that means comparing against history
-rather than the working tree — contract immutability, which belongs to v0.6 and
-is deliberately not attempted here.
+Closed in v0.6 by STORY-009. The baseline is **the parent of the earliest commit
+that changes a governed path for the story**, so a contract edit committed during
+implementation is newer than the baseline and cannot become it.
 
-What `verify` catches is the case that occurs in practice: a contract edited
-during implementation and left behind.
+HEAD was rejected for the reason the roles drafting STORY-009 all reached
+independently: `git commit` would move it, re-opening the hole one level up.
+Merge-base with an integration branch was rejected because it requires that
+branch to be current, and in this repository it is not.
+
+`dor.json.contract_hash` stays. It is required by the schema, present in every
+committed `dor.json`, and still the only answer available in a checkout without
+git. It is a record; history is the authority.
+
+What this still does not catch is a rebase, which rewrites the history the
+baseline is derived from. That is a louder act than re-running a command, and is
+not treated as the same class of problem.
 
 ## Coverage is stated, never rounded up
 

@@ -8,6 +8,7 @@ never taken from the verdict recorded beside them.
 
 import json
 import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -18,11 +19,22 @@ FIXTURES = Path(__file__).parent / "fixtures" / "stories"
 
 
 @pytest.fixture
-def baselined(scratch_repo: Path):
-    """A story whose dor.json records the hashes of its current contract."""
+def baselined(git_repo: Path):
+    """A story whose contract is committed, and so has a baseline in history.
+
+    STORY-009 moved the baseline from ``dor.json.contract_hash`` into git, so
+    the fixture that establishes one is now a commit rather than a write. The
+    assertions below are unchanged: what they hold is that readiness is
+    re-derived and that a moved contract is named, neither of which depends on
+    where the baseline is kept.
+    """
     def prepare(story_id: str = "READY-001"):
-        cfg = config_module.load(root=scratch_repo)
+        cfg = config_module.load(root=git_repo)
         dor.write(dor.evaluate(cfg, story_id))
+        subprocess.run(["git", "add", "-A"], cwd=git_repo, check=True,
+                       capture_output=True)
+        subprocess.run(["git", "commit", "-q", "-m", "contract"], cwd=git_repo,
+                       check=True, capture_output=True)
         return cfg, story_id
     return prepare
 
@@ -98,11 +110,10 @@ def test_readiness_comes_from_the_contract_when_dor_says_otherwise(baselined, sc
     assert result.verified is True
 
 
-def test_a_story_that_is_not_ready_does_not_verify(scratch_repo):
-    cfg = config_module.load(root=scratch_repo)
-    dor.write(dor.evaluate(cfg, "BLOCKED-001"))
+def test_a_story_that_is_not_ready_does_not_verify(baselined):
+    cfg, story_id = baselined("BLOCKED-001")
 
-    result = verify.evaluate(cfg, "BLOCKED-001")
+    result = verify.evaluate(cfg, story_id)
 
     assert result.ready is False
     assert result.changed == []
@@ -111,20 +122,30 @@ def test_a_story_that_is_not_ready_does_not_verify(scratch_repo):
 
 
 def test_no_baseline_is_a_structural_error(scratch_repo):
+    """Superseded mechanism, same meaning.
+
+    Under v0.5 "no baseline" meant an absent ``dor.json``. STORY-009 made it an
+    absent commit, so this holds the same refusal against the new cause.
+    """
     cfg = config_module.load(root=scratch_repo)
     with pytest.raises(verify.NoBaseline):
         verify.evaluate(cfg, "READY-001")
 
 
-def test_a_baseline_without_hashes_is_a_structural_error(baselined, scratch_repo):
+def test_a_recorded_hash_is_no_longer_required_to_verify(baselined, scratch_repo):
+    """STORY-009 demoted ``contract_hash`` from authority to record.
+
+    Deleting it used to make verification structurally impossible. It no longer
+    does, because the answer now comes from history.
+    """
     cfg, story_id = baselined()
     path = scratch_repo / ".amigos" / "stories" / story_id / "dor.json"
     payload = json.loads(path.read_text())
     del payload["contract_hash"]
     path.write_text(json.dumps(payload, indent=2))
 
-    with pytest.raises(verify.NoBaseline):
-        verify.evaluate(cfg, story_id)
+    assert verify.recorded_hashes(cfg.story_dir(story_id)) == {}
+    assert verify.evaluate(cfg, story_id).verified is True
 
 
 def test_a_structurally_unusable_story_propagates(scratch_repo):
@@ -149,6 +170,6 @@ def test_the_result_serialises_for_a_json_caller(baselined):
     payload = verify.evaluate(cfg, story_id).as_dict()
 
     assert payload["story_id"] == story_id
-    assert payload["baseline"] == "dor.json"
+    assert len(payload["baseline"]) == 40, "the baseline is a git revision"
     assert payload["verified"] is True
     assert set(payload["contract"]) == set(verify.HASHED_FILES)

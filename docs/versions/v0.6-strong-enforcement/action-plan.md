@@ -2,7 +2,7 @@
 
 ## Milestone sequence
 
-- [~] 1. **STORY-009** — contract immutability: the baseline moves to git history.
+- [x] 1. **STORY-009** — contract immutability: the baseline moves to git history.
 - [ ] 2. The gate refuses a contract edit while a story is ready.
 - [ ] 3. Enforcement outside the session: CI re-running the gate over a push range.
 - [ ] 4. Governed writes made through `Bash`.
@@ -26,17 +26,17 @@ The tasks below are therefore **predictions, not instructions**. `/implement`
 derives its own work from the nine scenarios in `acceptance.feature`; if what it
 does diverges from this list, the list is what was wrong.
 
-- [ ] 1. Baseline derivation in `src/amigos/verify.py`: resolve the work-tree
+- [x] 1. Baseline derivation in `src/amigos/verify.py`: resolve the work-tree
       root, find `C0`, find `I0` in `C0..HEAD` using `gate.classify()`, return
       `I0^` or HEAD.
-- [ ] 2. Comparison against the baseline through git, so repository content
+- [x] 2. Comparison against the baseline through git, so repository content
       filters are applied rather than bypassed.
-- [ ] 3. Report the baseline revision in the command's output and in `--json`.
-- [ ] 4. Map the new failure modes onto exit code 2, distinctly from 1.
-- [ ] 5. Git-backed fixtures in `tests/conftest.py` able to build the
+- [x] 3. Report the baseline revision in the command's output and in `--json`.
+- [x] 4. Map the new failure modes onto exit code 2, distinctly from 1.
+- [x] 5. Git-backed fixtures in `tests/conftest.py` able to build the
       three-commit shape: contract, governed change, contract edit.
-- [ ] 6. `tests/test_verify.py` for the nine scenarios.
-- [ ] 7. Closeout: `implementation-notes.md`, `docs/component-design/execution.md`,
+- [x] 6. `tests/test_verify.py` for the nine scenarios.
+- [x] 7. Closeout: `implementation-notes.md`, `docs/component-design/execution.md`,
       `milestones.md`, `roadmaps.md`.
 
 ## Acceptance criteria

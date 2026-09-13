@@ -6,22 +6,27 @@
 | v0.2 | Repository gate refusing source changes without a ready story | v0.1 | The project cannot casually bypass its own contract. | Complete |
 | v0.3 | `/amigos` MVP, one orchestrator preserving the three logical phases | v0.2 | Amigos Skills can create usable contracts for its own development. | Complete |
 | v0.4 | Product, Development and QA as independent subagents | v0.3 | A run records one findings record per role and a computed count of findings named by exactly one role, and that count is greater than zero. | Complete |
-| v0.5 | `/implement` | v0.4 | The project moves from a ready contract to verified implementation without redefining the requirement. | In progress |
-| v0.6 | Strong self-hosting enforcement, contract immutability | v0.5 | No privileged development path around the protocol. | Not started |
+| v0.5 | `/implement` | v0.4 | The project moves from a ready contract to verified implementation without redefining the requirement. | Complete |
+| v0.6 | Strong self-hosting enforcement, contract immutability | v0.5 | No privileged development path around the protocol. | In progress |
 | v0.7 | Dogfooding failure corpus and evals | v0.6 | Every recurring failure class becomes a durable regression test. | Not started |
 
-## Why v0.5 stays open
+## Why v0.5 is now closed
 
-v0.5's skill and its `amigos verify` command are built and tested, but the
-milestone's exit criterion cannot be evaluated by the story that creates them:
-`/implement` would have to exist before it could implement itself, and every
-other story in the repository is already implemented.
+v0.5's skill and its `amigos verify` command were built and tested in v0.5, but
+the milestone's exit criterion could not be evaluated by the story that created
+them: `/implement` would have to exist before it could implement itself.
 
-**v0.6's first story is the demonstration.** This couples the two milestones'
-timelines deliberately, on the v0.4 precedent that a milestone does not close on
-code that was never exercised. The run must also be a fresh session — skills are
-snapshotted at registration, so the session that writes a skill serves its
-pre-edit text.
+**v0.6's first story was the demonstration**, on the v0.4 precedent that a
+milestone does not close on code that was never exercised. STORY-009 was built by
+running `/implement` against a contract it did not author, and the run record is
+at `.amigos/runs/STORY-009/2026-09-13T23-05-08Z/implementation.md`: nine
+scenarios, 9 of 9 decided by tests, red recorded before green, 332 tests passing,
+`amigos verify STORY-009` exit 0 against the committed baseline.
+
+The run also reported what it was supposed to report rather than what would have
+looked better. It found that STORY-006's own contract was finalised in the same
+commit that implemented it, so that story no longer verifies under the baseline
+v0.6 introduced. Recorded, not repaired.
 
 ## Notes on ordering
 

@@ -223,17 +223,18 @@ def _verify(cfg: config_module.Config, args: argparse.Namespace) -> int:
         return result.exit_code
 
     print(f"{result.story_id}: {result.state}")
+    print(f"  baseline {result.baseline[:12]}")
     for name in verify_module.HASHED_FILES:
         print(f"  [{result.contract[name].upper()}] {name}")
     if result.changed:
         print()
-        print(f"  {len(result.changed)} contract file(s) differ from the hash "
-              f"{verify_module.BASELINE_FILE} recorded:")
+        print(f"  {len(result.changed)} contract file(s) differ from the contract "
+              f"committed at {result.baseline[:12]}:")
         for name in result.changed:
             print(f"    {result.directory / name}")
         print("\n  The requirement moved during implementation. Take the change "
               "through\n  'amigos state <id> --set contract_change' and the amigos "
-              "skill, not by\n  re-recording the verdict.")
+              "skill, not by\n  committing over the baseline.")
     elif not result.ready:
         print("\n  The contract is unchanged, but the story is not ready.")
 

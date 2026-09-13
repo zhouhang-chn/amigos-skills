@@ -168,23 +168,19 @@ def test_verify_is_registered():
     assert args.story_id == "STORY-006"
 
 
-def test_verify_exits_zero_on_an_unchanged_ready_contract(scratch_repo):
-    from amigos import config as config_module, dor as dor_module, verify
-    cfg = config_module.load(root=scratch_repo)
-    dor_module.write(dor_module.evaluate(cfg, "READY-001"))
+def test_verify_exits_zero_on_an_unchanged_ready_contract(committed_repo):
+    from amigos import verify
 
-    code = main(["verify", "--root", str(scratch_repo), "READY-001"])
+    code = main(["verify", "--root", str(committed_repo), "READY-001"])
     assert code == verify.EXIT_OK
 
 
-def test_verify_exits_one_and_names_the_changed_file(scratch_repo, capsys):
-    from amigos import config as config_module, dor as dor_module, verify
-    cfg = config_module.load(root=scratch_repo)
-    dor_module.write(dor_module.evaluate(cfg, "READY-001"))
-    feature = scratch_repo / ".amigos" / "stories" / "READY-001" / "acceptance.feature"
+def test_verify_exits_one_and_names_the_changed_file(committed_repo, capsys):
+    from amigos import verify
+    feature = committed_repo / ".amigos" / "stories" / "READY-001" / "acceptance.feature"
     feature.write_text(feature.read_text() + "\n# moved\n")
 
-    code = main(["verify", "--root", str(scratch_repo), "READY-001"])
+    code = main(["verify", "--root", str(committed_repo), "READY-001"])
     out = capsys.readouterr().out
 
     assert code == verify.EXIT_NOT_VERIFIED
@@ -193,17 +189,14 @@ def test_verify_exits_one_and_names_the_changed_file(scratch_repo, capsys):
 
 
 def test_verify_exits_two_without_a_baseline(scratch_repo, capsys):
+    """No git, so no committed contract: unanswerable, not refused."""
     code = main(["verify", "--root", str(scratch_repo), "READY-001"])
     assert code == 2
-    assert "contract hash" in capsys.readouterr().err
+    assert capsys.readouterr().err.strip()
 
 
-def test_verify_json_carries_the_per_file_verdict(scratch_repo, capsys):
-    from amigos import config as config_module, dor as dor_module
-    cfg = config_module.load(root=scratch_repo)
-    dor_module.write(dor_module.evaluate(cfg, "READY-001"))
-
-    main(["verify", "--root", str(scratch_repo), "--json", "READY-001"])
+def test_verify_json_carries_the_per_file_verdict(committed_repo, capsys):
+    main(["verify", "--root", str(committed_repo), "--json", "READY-001"])
     payload = json.loads(capsys.readouterr().out)
 
     assert payload["verified"] is True

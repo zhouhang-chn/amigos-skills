@@ -68,3 +68,19 @@ def on_branch(git_repo: Path):
 def no_ambient_story(monkeypatch):
     """The environment must never leak an active story into a test."""
     monkeypatch.delenv("AMIGOS_STORY", raising=False)
+
+
+@pytest.fixture
+def committed_repo(git_repo: Path) -> Path:
+    """A git repository whose fixture contracts are committed.
+
+    STORY-009 moved the verification baseline into git history, so a story only
+    has a baseline once its contract is in a commit.
+    """
+    from amigos import config as config_module, dor
+    cfg = config_module.load(root=git_repo)
+    for story_id in ("READY-001", "BLOCKED-001"):
+        dor.write(dor.evaluate(cfg, story_id))
+    _git(git_repo, "add", "-A")
+    _git(git_repo, "commit", "-q", "-m", "contracts")
+    return git_repo
