@@ -20,9 +20,11 @@ Exit criterion, restated so it can be evaluated (the original could not be — s
 - [x] 7. `tests/test_findings.py`, and additions to `tests/test_skill.py` and `tests/test_cli.py`
 - [x] 8. README amendments: sections 8, 11, 12, 13, 19, 21, 22
 - [x] 9. `docs/component-design/orchestration.md` — the split, the count, the run record
-- [ ] 10. Commit the implementation
-- [ ] 11. Dogfooding run: invoke `/amigos` as a registered skill to produce the v0.5 contract
-- [ ] 12. `implementation-notes.md`, `milestones.md`, `docs/README.md`; commit; merge
+- [x] 10. Commit the implementation
+- [!] 11. Dogfooding run: invoke `/amigos` as a registered skill to produce the v0.5 contract
+      Blocked: all three drafting agents hit a session rate limit. The stop-the-run
+      invariant fired correctly and nothing was written. See `implementation-notes.md`.
+- [~] 12. `implementation-notes.md`, `milestones.md`, `docs/README.md`; commit; merge
 
 Task 11 is the milestone, not a demonstration of it. Everything before it is
 scaffolding for one measurement.
