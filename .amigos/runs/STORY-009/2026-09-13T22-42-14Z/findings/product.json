@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "story_id": "STORY-009",
+  "role": "product",
+  "findings": [
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Out of Scope",
+      "risk_dimension": "scope",
+      "statement": "The ticket leaves open whether this story also makes the gate refuse a contract edit while a story is ready; this draft puts prevention out of scope and keeps the story to moving the baseline, because narrowing the '.amigos/**' exemption requires first deciding how a contract may legitimately change, which the v0.6 gap analysis assigns to phase 8."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Desired Outcome",
+      "risk_dimension": "ambiguity",
+      "statement": "\"The contract as committed\" does not say which commit: HEAD, the merge-base with the integration branch, or the commit that last touched the contract files give three different verdicts when a contract and its implementation share a branch, which is how every slice in this repository has been worked."
+    },
+    {
+      "role": "product",
+      "target_file": "constraints.md",
+      "target_section": "Invariants",
+      "risk_dimension": "invariant",
+      "statement": "A git baseline is only outside the implementing agent's reach if that agent cannot move it, and an agent that commits its own contract edit moves a HEAD-based baseline exactly as re-running 'amigos check' moves today's, so the story must state which ref the agent is unable to move and what residual laundering path remains."
+    },
+    {
+      "role": "product",
+      "target_file": "constraints.md",
+      "target_section": "Dependencies",
+      "risk_dimension": "dependency",
+      "statement": "The check presupposes that a story's contract is committed before implementation begins, which this repository does by convention (commit 3067aee \"Contract: STORY-004\" precedes ac5f549 \"Implement /amigos\") but which no document states, no command requires, and no downstream adopter has been told."
+    },
+    {
+      "role": "product",
+      "target_file": "acceptance.feature",
+      "target_section": "Scenarios",
+      "risk_dimension": "coverage",
+      "statement": "The request does not say what verification should answer when no committed version of the contract exists \u2014 a story contracted but never committed, an untracked story directory, a shallow or exported checkout \u2014 and answering \"verified\" there reopens the hole while answering \"not verified\" fails every story on its first run."
+    },
+    {
+      "role": "product",
+      "target_file": "constraints.md",
+      "target_section": "Technical Constraints",
+      "risk_dimension": "feasibility",
+      "statement": "Moving the baseline onto git history makes git a hard requirement for a question that is answerable today without it, while '--stories-dir' can point at a story corpus outside any repository and most of this project's own test fixtures are scratch directories that are not git repositories."
+    },
+    {
+      "role": "product",
+      "target_file": "constraints.md",
+      "target_section": "Relevant Components",
+      "risk_dimension": "compatibility",
+      "statement": "'contract_hash' is a required field of schemas/dor.schema.json, documented in README section 5 and asserted by tests/test_dogfooding.py, and the request does not settle whether it stays as a record, keeps being written by every 'amigos check', or is removed."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "scope",
+      "statement": "README phase 6's wording names 'acceptance.feature' alone while 'amigos verify' today judges all four contract input files, and the request does not say whether immutability narrows to the acceptance criteria or keeps the wider set."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Success",
+      "risk_dimension": "testability",
+      "statement": "The only party that runs 'amigos verify' today is the agent being judged by it, so the story's outcome is observable to a reviewer only if the verdict is also reachable from somewhere the session does not control, and the ticket reserves CI for a later story."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Why Now",
+      "risk_dimension": "compatibility",
+      "statement": "README section 26 assigns STORY-008 to \"Export accepted GWTs into eval tasks\" and STORY-006's ready contract cites \"Phase 7 / STORY-008\" for eval export, so this story takes an id the repository has already promised elsewhere, and correcting those references would itself be an edit to a ready story's contract."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "testability",
+      "statement": "The story's second job \u2014 being the story '/implement' is run against, so v0.5 gets its demonstration \u2014 is an obligation on the run rather than on the product, and nothing in the delivered files shows afterwards that the run happened except the run record that same run writes."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Problem",
+      "risk_dimension": "ambiguity",
+      "statement": "\"Re-running 'amigos check' can no longer launder an edit\" is a promise about one command, and the story must say whether the claim extends to every path available in the session \u2014 a Bash write, 'git commit --amend', restoring the file from history after the check \u2014 or stops at that command."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Out of Scope",
+      "risk_dimension": "scope",
+      "statement": "A story legitimately re-contracted through contract_change must still be able to verify afterwards, and the request does not say whether re-establishing the baseline is part of this story or whether committing the new contract is simply enough \u2014 noting that if committing is enough, the same act also relabels an illegitimate edit as a legitimate one."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Out of Scope",
+      "risk_dimension": "scope",
+      "statement": "The v0.6 gap analysis records that 'amigos check' dirties the working tree on every invocation (gap 10) and names that write as the mechanism behind the laundering hole, so whether this story stops 'check' writing 'dor.json' or leaves that to a later story is adjacent work the request does not settle."
+    },
+    {
+      "role": "product",
+      "target_file": "constraints.md",
+      "target_section": "Invariants",
+      "risk_dimension": "compatibility",
+      "statement": "Every existing story in this repository must still verify after the baseline moves, and STORY-006's contract files are currently staged but uncommitted while this checkout is on a detached HEAD, so the new baseline changes the answer for contracts that pass today."
+    },
+    {
+      "role": "product",
+      "target_file": "acceptance.feature",
+      "target_section": "Scenarios",
+      "risk_dimension": "coverage",
+      "statement": "The request describes the failure it closes but names no scenario for the legitimate case that looks identical from the outside \u2014 '/amigos' rewriting a contract in the working tree during a re-run, where the tree deliberately differs from history and the story is not ready anyway."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "User",
+      "risk_dimension": "ambiguity",
+      "statement": "The request is written for this repository, and it does not say whether the promise is also made to downstream adopters whose contracts may live in a different branch, a submodule, or a repository separate from the code being judged."
+    }
+  ]
+}
