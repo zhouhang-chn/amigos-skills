@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/zhouhang-chn/amigos-skills/schemas/findings.schema.json",
+  "title": "Amigos role findings record",
+  "description": "What one Three Amigos role found while drafting blind. Structured rather than prose, so overlap between roles is computed rather than judged. An empty findings array is not an empty result: it stops the run.",
+  "type": "object",
+  "required": ["schema_version", "story_id", "role", "findings"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "story_id": { "type": "string", "minLength": 1 },
+    "role": { "type": "string", "enum": ["product", "dev", "qa"] },
+    "findings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["target_file", "target_section", "risk_dimension", "statement"],
+        "additionalProperties": false,
+        "properties": {
+          "role": { "type": "string", "enum": ["product", "dev", "qa"] },
+          "target_file": { "type": "string", "minLength": 1 },
+          "target_section": { "type": "string", "minLength": 1 },
+          "risk_dimension": { "type": "string", "minLength": 1 },
+          "statement": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

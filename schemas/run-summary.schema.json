@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/zhouhang-chn/amigos-skills/schemas/run-summary.schema.json",
+  "title": "Amigos run findings summary",
+  "description": "Derived overlap record for one /amigos run. Generated only by `amigos findings`. The count of findings named by exactly one role is the number the multi-agent design is judged on, so it is computed here rather than asserted anywhere else.",
+  "type": "object",
+  "required": [
+    "schema_version", "story_id", "run_id", "generated_at", "generator",
+    "findings_by_role", "total_findings", "distinct_findings", "shared",
+    "unique", "unique_by_role", "split_added_nothing", "keys"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "story_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "generated_at": { "type": "string", "minLength": 1 },
+    "generator": { "type": "string", "minLength": 1 },
+    "findings_by_role": {
+      "type": "object",
+      "required": ["product", "dev", "qa"],
+      "additionalProperties": false,
+      "properties": {
+        "product": { "type": "integer", "minimum": 0 },
+        "dev": { "type": "integer", "minimum": 0 },
+        "qa": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "total_findings": { "type": "integer", "minimum": 0 },
+    "distinct_findings": { "type": "integer", "minimum": 0 },
+    "shared": { "type": "integer", "minimum": 0 },
+    "unique": { "type": "integer", "minimum": 0 },
+    "unique_by_role": {
+      "type": "object",
+      "required": ["product", "dev", "qa"],
+      "additionalProperties": false,
+      "properties": {
+        "product": { "type": "integer", "minimum": 0 },
+        "dev": { "type": "integer", "minimum": 0 },
+        "qa": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "split_added_nothing": { "type": "boolean" },
+    "keys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["target_section", "risk_dimension", "roles", "shared", "sources"],
+        "additionalProperties": false,
+        "properties": {
+          "target_section": { "type": "string", "minLength": 1 },
+          "risk_dimension": { "type": "string", "minLength": 1 },
+          "roles": { "type": "array", "items": { "type": "string", "enum": ["product", "dev", "qa"] } },
+          "shared": { "type": "boolean" },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["role", "target_file", "target_section", "risk_dimension", "statement"],
+              "additionalProperties": false,
+              "properties": {
+                "role": { "type": "string", "enum": ["product", "dev", "qa"] },
+                "target_file": { "type": "string", "minLength": 1 },
+                "target_section": { "type": "string", "minLength": 1 },
+                "risk_dimension": { "type": "string", "minLength": 1 },
+                "statement": { "type": "string", "minLength": 1 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

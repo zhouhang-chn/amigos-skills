@@ -8,18 +8,33 @@ Nothing under `.amigos/` may depend on either.
 ```text
 .amigos/
 ├── config.json
-└── stories/
+├── stories/
+│   └── <STORY-ID>/
+│       ├── intent.md            input, hand- or agent-authored
+│       ├── constraints.md       input
+│       ├── acceptance.feature   input
+│       ├── open-questions.md    input
+│       ├── state.json           input, agent-owned lifecycle
+│       └── dor.json             output, validator-owned
+└── runs/
     └── <STORY-ID>/
-        ├── intent.md            input, hand- or agent-authored
-        ├── constraints.md       input
-        ├── acceptance.feature   input
-        ├── open-questions.md    input
-        ├── state.json           input, agent-owned lifecycle
-        └── dor.json             output, validator-owned
+        └── <run-id>/
+            ├── findings/{product,dev,qa}.json   what each role found
+            └── summary.json                     the overlap, counted
 ```
 
 Story IDs start with a letter and continue with letters, digits, dot, underscore
 or hyphen. They are local strings with no external synchronisation.
+
+`stories/` is the specification. `runs/` is evidence about how a specification
+was produced: which role noticed what, and how much of it the other two noticed
+too. Nothing downstream reads `runs/`, which is exactly why it is not in the
+story directory — an agent reading a contract should not have to tell the
+specification from the record of how it was made.
+
+A run id is a UTC timestamp, `YYYY-MM-DDTHH-MM-SSZ`, disambiguated with a
+numeric suffix if two runs land in the same second. Runs accumulate; nothing
+overwrites an earlier one.
 
 ## Ownership
 
@@ -30,6 +45,12 @@ The split between `state.json` and `dor.json` is the mechanism behind
 |---|---|---|
 | `state.json` | agents and humans | the declared lifecycle state |
 | `dor.json` | the validator, only | every check, `ready`, the effective state |
+| `runs/**/findings/*.json` | `amigos findings`, from what an agent returned | one role's structured findings |
+| `runs/**/summary.json` | `amigos findings`, only | the overlap between the three roles |
+
+The pattern repeats: an agent supplies raw material, and a deterministic tool
+decides what it means. A role hands over a findings record; it does not get to
+say how much of what it found the others also found.
 
 `state.json.declared_state` accepts `draft`, `amigos_running` and
 `contract_change`. It does **not** accept `ready` or `blocked`: those are
@@ -111,6 +132,14 @@ but cannot disable the rule set.
 
 ## Schemas
 
-`schemas/dor.schema.json` and `schemas/state.schema.json`. `dor.json` is
-validated against its schema every time it is written; a payload that would not
-validate is not written at all.
+```text
+schemas/dor.schema.json           the derived readiness record
+schemas/state.schema.json         the declared lifecycle record
+schemas/findings.schema.json      one role's findings, as an agent returns them
+schemas/run-summary.schema.json   the counted overlap for one run
+```
+
+Every generated file is validated against its schema before it is written; a
+payload that would not validate is not written at all. Incoming findings records
+are validated before they are accepted, so a malformed one stops the run rather
+than reaching the count.

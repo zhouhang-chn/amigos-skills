@@ -1,4 +1,4 @@
-"""STORY-004: the discipline the skill states.
+"""STORY-004 and STORY-005: the discipline the skill states.
 
 A prompt cannot be unit tested for behaviour, but it can be held to the rules it
 is supposed to carry. These tests fail when the instructions drift away from what
@@ -10,8 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from amigos import dor, story
-from amigos.config import _default_vague_words
+from amigos import dor, findings, story
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SKILL = REPO_ROOT / "skills" / "amigos" / "SKILL.md"
@@ -61,29 +60,39 @@ def test_the_skill_bounds_both_of_its_loops(skill_text):
     assert "at most three attempts" in skill_text.lower()
 
 
-def test_the_skill_names_every_vague_word_the_linter_rejects(skill_text):
-    """If the list drifts, the skill teaches an agent to write rejected clauses."""
-    for word in _default_vague_words():
-        assert word in skill_text, word
+def test_the_skill_forbids_carrying_one_role_into_another(skill_text):
+    """v0.4: blind drafting is the milestone. Stated as a prohibition, not a hope."""
+    assert "Put one role's work into another role's prompt during drafting" in skill_text
 
 
-def test_the_skill_requires_exactly_one_role_tag(skill_text):
-    assert "@primary" in skill_text and "@counterexample" in skill_text
-    assert "exactly one tag" in skill_text
+def test_the_skill_never_proposes_a_fork(skill_text):
+    """A fork inherits this conversation, which by Phase 1 holds the other roles' work.
+
+    Every mention of forking must be a prohibition. A single sentence that lost
+    its 'never' would silently turn blind drafting back into shared context.
+    """
+    mentions = [line for line in skill_text.splitlines() if "fork" in line.lower()]
+    assert mentions, "the skill must say something about forks"
+    for line in mentions:
+        assert "never" in line.lower() or "not" in line.lower(), line
 
 
-def test_the_skill_states_the_thresholds_the_validator_enforces(skill_text, repo_config):
-    lowered = skill_text.lower()
-    assert "at least one `@primary`" in lowered
-    assert "at least two `@counterexample`" in lowered
-    # The words the skill uses must still be the numbers the validator enforces.
-    assert (repo_config.min_primary, repo_config.min_counterexamples) == (1, 2)
+def test_the_skill_spawns_each_role_by_its_agent_type(skill_text):
+    for role in findings.ROLES:
+        assert f"`{role}`" in skill_text, role
+
+
+def test_the_skill_stops_when_a_role_returns_nothing(skill_text):
+    """STORY-005: two roles plus a gap is not the Three Amigos."""
+    assert "the run stops here" in skill_text
+    assert "a contract reconciled from" in skill_text
 
 
 def test_the_skill_covers_every_phase_the_design_names(skill_text):
     for phase in ("Phase 0", "Phase 1", "Phase 2", "Phase 3",
-                  "Phase 4", "Phase 5", "Phase 6", "Phase 7", "Phase 8"):
+                  "Phase 4", "Phase 5", "Phase 6", "Phase 7"):
         assert f"## {phase}" in skill_text, phase
+    assert "## Phase 8" not in skill_text, "v0.4 folded the challenge phase into Phase 3"
 
 
 def test_the_skill_only_uses_commands_that_exist(skill_text):
@@ -92,7 +101,7 @@ def test_the_skill_only_uses_commands_that_exist(skill_text):
     known = set(build_parser()._subparsers._group_actions[0].choices)
     used = set(re.findall(r"^\s*amigos ([a-z]+)", skill_text, re.MULTILINE))
     assert used <= known, used - known
-    assert {"create", "check", "state"} <= used
+    assert {"create", "check", "state", "findings"} <= used
 
 
 def test_every_state_the_skill_sets_is_declarable(skill_text):

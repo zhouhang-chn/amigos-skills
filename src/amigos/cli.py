@@ -1,13 +1,15 @@
-"""Command line surface: ``amigos init | create | check | lint | status``."""
+"""Command line surface: ``amigos init | create | check | lint | status | gate | state | findings | hooks``."""
 
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import sys
 from pathlib import Path
 
-from . import __version__, config as config_module, dor, gate as gate_module, hooks, lint as lint_module, story
+from . import (__version__, config as config_module, dor, findings as findings_module,
+               gate as gate_module, hooks, lint as lint_module, story)
 from .gherkin import ParseError
 
 EXIT_OK = 0
@@ -83,6 +85,17 @@ def build_parser() -> argparse.ArgumentParser:
     state.add_argument("--note", default=None, help="why the transition happened")
     _add_common(state)
 
+    found = subparsers.add_parser(
+        "findings", help="file each role's findings record and count the overlap")
+    found.add_argument("story_id")
+    for role in findings_module.ROLES:
+        found.add_argument(f"--{role}", type=Path, required=True, metavar="PATH",
+                           help=f"the {role} agent's findings record")
+    found.add_argument("--json", action="store_true", dest="as_json")
+    found.add_argument("--no-write", action="store_true",
+                       help="count without writing a run record")
+    _add_common(found)
+
     hooks_cmd = subparsers.add_parser("hooks", help="install or inspect the git hook")
     hooks_cmd.add_argument("action", choices=["install", "uninstall", "status"])
     hooks_cmd.add_argument("--force", action="store_true",
@@ -112,6 +125,8 @@ def main(argv: list[str] | None = None) -> int:
             return _gate(cfg, args)
         if args.command == "state":
             return _state(cfg, args)
+        if args.command == "findings":
+            return _findings(cfg, args)
     except config_module.ConfigError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_ERROR
@@ -122,6 +137,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_ERROR
     except ParseError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    except findings_module.FindingsError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_ERROR
     except gate_module.GateUnavailable as exc:
@@ -291,4 +309,41 @@ def _state(cfg: config_module.Config, args: argparse.Namespace) -> int:
     after = story.set_state(directory, args.declared, note=args.note)
     print(f"{args.story_id}: {before} -> {after.declared_state}")
     print(f"  {len(after.history)} entries in history")
+    return EXIT_OK
+
+
+def _findings(cfg: config_module.Config, args: argparse.Namespace) -> int:
+    directory = story.story_dir(cfg, args.story_id)
+    if not directory.is_dir():
+        print(f"error: {directory}: story not found", file=sys.stderr)
+        return EXIT_ERROR
+
+    paths = {role: getattr(args, role) for role in findings_module.ROLES}
+    records = findings_module.load_records(args.story_id, paths)
+    summary = findings_module.summarise(args.story_id, records)
+
+    run_directory = None
+    if not args.no_write:
+        run_directory = findings_module.write(cfg, summary, records)
+        summary = dataclasses.replace(summary, run_id=run_directory.name)
+
+    if args.as_json:
+        print(json.dumps(summary.as_dict(), indent=2))
+        return EXIT_OK
+
+    print(f"{summary.story_id}: {summary.total_findings} findings, "
+          f"{len(summary.keys)} distinct")
+    width = max(len(role) for role in findings_module.ROLES)
+    for role in findings_module.ROLES:
+        print(f"  {role:<{width}}  {summary.findings_by_role[role]:>3} findings, "
+              f"{summary.unique_by_role[role]:>3} named by no other role")
+    print()
+    print(f"  shared  {summary.shared:>3}")
+    print(f"  unique  {summary.unique:>3}")
+    if summary.split_added_nothing:
+        print()
+        print(findings_module.NOTHING_GAINED)
+    if run_directory is not None:
+        print()
+        print(f"run record: {run_directory}")
     return EXIT_OK

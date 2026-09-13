@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "story_id": "READY-001",
+  "role": "product",
+  "findings": [
+    {
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "scope",
+      "statement": "The ticket does not say whether existing sessions are revoked."
+    },
+    {
+      "target_file": "intent.md",
+      "target_section": "Desired Outcome",
+      "risk_dimension": "ambiguity",
+      "statement": "\"Faster\" is not attached to anything a reader could measure."
+    },
+    {
+      "target_file": "intent.md",
+      "target_section": "Out of Scope",
+      "risk_dimension": "scope",
+      "statement": "Nothing states whether the admin console is included."
+    }
+  ]
+}

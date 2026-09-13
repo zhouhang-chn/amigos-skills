@@ -39,7 +39,8 @@ Contracts are generated rather than hand-authored from v0.3 on:
 | Deterministic validator and acceptance lint | Built |
 | Repository gate | Built |
 | `/amigos` | Built |
-| Subagents, `/implement` | Not built |
+| Product, Development and QA subagents | Built |
+| `/implement` | Not built |
 
 Sections 1 to 37 below are the specification of intent; they describe the whole
 system, most of which is still ahead. [docs/roadmaps.md](docs/roadmaps.md)
@@ -471,10 +472,13 @@ Architecture:
           v            v            v
        Product        Dev           QA
        Agent          Agent        Agent
+      (blind)       (blind)      (blind)
           |            |            |
           +------------+------------+
                        |
-                  Synthesis
+                amigos findings
+                       |
+                 Reconciliation
                        |
                        v
                 Contract Files
@@ -502,19 +506,33 @@ Architecture:
 Phases:
 
 ```text
-0  Set up      create or reopen; declare amigos_running; read the repository
-1  Product     user, problem, outcome, why now, in and out of scope
-2  Development feasibility, dependencies, invariants, components
-3  QA          primary path, counterexamples, judgeable assertions
-4  Challenge   each perspective attacks the others' output
-5  Interview   at most two rounds, only on what would become an assumption
-6  Synthesise  write the four input files
-7  Validate    amigos check, repair, re-check, at most three attempts
-8  Finish      return to draft; report ready or blocked
+0  Set up      create or reopen; declare amigos_running; write the ticket
+1  Draft       three agents, same ticket, none sees another's output
+2  Count       amigos findings; what did exactly one role notice?
+3  Reconcile   merge the drafts; every conflict resolves into the contract
+4  Interview   at most two rounds, only on what would become an assumption
+5  Synthesise  write the four input files
+6  Validate    amigos check, repair, re-check, at most three attempts
+7  Finish      return to draft; report ready or blocked, with the count
 ```
 
 `amigos_running` withholds readiness for the whole run, so a half-written
 contract can never read as ready to anything downstream.
+
+The three roles draft **blind**: each is a separate agent with no inherited
+context, all three prompts are assembled before any of them runs, and none
+receives another's output. Independence stated in an instruction is not
+independence; an agent told to ignore what it has read has still read it.
+
+Phase 2 is the only place the split is measured, and it is measured by code.
+Two findings are the same finding when they name the same target section and the
+same risk dimension. A run reports how many findings exactly one role named — a
+count of zero is a reportable result, not a failure, and it is the signal that
+the split is not earning its cost.
+
+A missing, malformed or empty findings record stops the run. Two roles plus a
+gap is not the Three Amigos, and a contract reconciled from the remaining two
+would carry the appearance of three perspectives without the substance.
 
 Both loops are bounded. The interview stops at two rounds and whatever remains
 becomes a blocking question; an agent required to reach zero blockers has an
@@ -522,9 +540,9 @@ incentive to accept a weak answer. The repair loop stops at three attempts and
 reports what is left; an unbounded loop against a rule the model has not
 understood ends in the same place having spent more.
 
-The skill may never write `dor.json`, declare `ready` or `blocked`, invent an
-assumption to clear a blocker, or write a transcript into the story. The first
-two are refused by code rather than by the skill remembering them.
+The skill may never write `dor.json`, declare `ready` or `blocked`, carry one
+role's work into another role's prompt, invent an assumption to clear a blocker,
+or write a transcript into the story.
 
 The output is not the conversation.
 
@@ -538,12 +556,14 @@ The Product subagent protects user intent and scope.
 
 ### Inputs
 
-- ticket;
+- the ticket, verbatim;
 - PRD;
 - product documentation;
 - business context;
 - priority information;
 - previous contracts where relevant.
+
+No other role's output. Product drafts blind.
 
 ### Responsibilities
 
@@ -557,6 +577,8 @@ It determines:
 - out-of-scope behavior;
 - ambiguous assumptions.
 
+It drafts `intent.md` and returns a findings record.
+
 ### Must Not
 
 Product must not:
@@ -564,7 +586,8 @@ Product must not:
 - generate code patches;
 - choose implementation architecture;
 - invent unsupported requirements;
-- expand scope because adjacent functionality seems useful.
+- expand scope because adjacent functionality seems useful;
+- write into the story directory, or ask the user a question.
 
 ---
 
@@ -574,7 +597,7 @@ The Development subagent protects feasibility and system integrity.
 
 ### Inputs
 
-- Product output;
+- the ticket, verbatim;
 - repository structure;
 - existing implementation;
 - architecture decisions;
@@ -582,6 +605,9 @@ The Development subagent protects feasibility and system integrity.
 - schemas;
 - tests;
 - dependencies.
+
+No other role's output. Development reads the request and the code, not a
+Product draft to react to.
 
 ### Responsibilities
 
@@ -595,6 +621,8 @@ It identifies:
 - technical ambiguity;
 - decomposition requirements.
 
+It drafts `constraints.md` and returns a findings record.
+
 ### Must Not
 
 Development must not:
@@ -602,7 +630,8 @@ Development must not:
 - expand product scope;
 - redefine success for implementation convenience;
 - silently reject requirements;
-- turn incidental implementation order into contract requirements.
+- turn incidental implementation order into contract requirements;
+- write code, write into the story directory, or ask the user a question.
 
 ---
 
@@ -612,13 +641,15 @@ The QA subagent converts intent into falsifiable behavior.
 
 ### Inputs
 
-- Product output;
-- Development output;
+- the ticket, verbatim;
 - incidents;
 - tests;
 - bug reports;
 - traces;
 - known failure modes.
+
+No other role's output. QA decides what would have to be observable for anyone
+to say this worked, rather than making someone else's intent testable.
 
 ### Responsibilities
 
@@ -630,6 +661,8 @@ It generates:
 - failure scenarios;
 - grader recommendations;
 - ambiguity findings.
+
+It drafts `acceptance.feature` and returns a findings record.
 
 Typical grader types include:
 
@@ -656,33 +689,79 @@ QA must not:
 - write empty assertions;
 - freeze incidental implementation details;
 - invent unsupported requirements;
-- mark ambiguous behavior as ready.
+- mark ambiguous behavior as ready;
+- run or write tests, write into the story directory, or ask the user a question.
 
 ---
 
-## 13. Cross-Agent Challenge
+## 13. Independence, Then Reconciliation
 
-Agents should reason independently before convergence whenever practical.
-
-Typical sequence:
+Agents reason independently before convergence. Not "whenever practical" —
+always, because the alternative is cheap to produce and impossible to tell apart
+from the real thing.
 
 ```text
-Product proposes intent and scope
+one ticket, three agents, no shared context
         ↓
-Development challenges feasibility
-        ↓
-QA challenges ambiguity and testability
-        ↓
-Product resolves scope conflicts
-        ↓
-Development resolves technical constraints
-        ↓
-QA revises scenarios
-        ↓
-Contract synthesis
+Product drafts intent      Development drafts constraints      QA drafts scenarios
+        ↓                            ↓                               ↓
+        +----------------------------+-------------------------------+
+                                     ↓
+                     the overlap is counted, by code
+                                     ↓
+                 reconciliation: conflicts resolve into the contract
+                                     ↓
+                             Contract synthesis
 ```
 
-The goal is structured disagreement, not unrestricted debate.
+The goal is structured disagreement, not unrestricted debate. Sequential
+challenge — Product proposes, Development challenges, QA challenges both — reads
+as disagreement but is not: each role has already absorbed the previous one's
+framing, and a role that inherits a framing can only argue at its edges.
+
+Reconciliation is where conflicts resolve, and every one of them resolves into
+the contract: a narrowed scope, an added counterexample, a new invariant, or a
+blocking question. Never into a commentary section, and never by preferring the
+role that wrote more fluently.
+
+A finding nobody acts on is still a decision. It stays in the run record with
+the role that made it, so a contract that quietly ignored a perspective is
+visible afterwards rather than indistinguishable from one that had nothing to
+ignore.
+
+### The findings record
+
+Each role returns one, structured rather than prose:
+
+```json
+{
+  "role": "dev",
+  "target_file": "constraints.md",
+  "target_section": "Dependencies",
+  "risk_dimension": "dependency",
+  "statement": "The request assumes a token service this repository does not contain."
+}
+```
+
+Structure is what makes the question answerable. Three roles producing three
+pages of prose can be summarised as agreeing or disagreeing to taste; three sets
+of `(target section, risk dimension)` pairs can be intersected.
+
+```bash
+amigos findings STORY-123 --product p.json --dev d.json --qa q.json
+```
+
+Two findings are the same finding when they name the same target section and the
+same risk dimension. The command reports how many findings exactly one role
+named. A run where that count is zero has to say so:
+
+```text
+No role contributed a finding the others missed.
+```
+
+That sentence is the kill criterion firing. The design is not defended by
+argument; it is kept because the number says it earns its cost, and dropped when
+the number says it does not.
 
 ---
 
@@ -910,8 +989,9 @@ integrations/claude-code/
 └── gate_hook.py           the adapter the hook runs
 ```
 
-`skills/` and `agents/` arrive with `/amigos`; the plugin manifest declares them
-at that point and not before.
+`.claude/skills/` and `.claude/agents/` hold symlinks into `skills/` and
+`agents/`, so this checkout discovers exactly the files the plugin ships rather
+than a second copy that drifts.
 
 The hook wiring:
 
@@ -985,7 +1065,8 @@ amigos-skills/
 │
 ├── .amigos/
 │   ├── config.json
-│   └── stories/
+│   ├── stories/
+│   └── runs/                what each role found, per /amigos run
 │
 ├── src/amigos/
 │   ├── config.py            repository configuration
@@ -995,13 +1076,18 @@ amigos-skills/
 │   ├── dor.py               the seven checks and dor.json generation
 │   ├── story.py             story paths, scaffolding, state.json
 │   ├── gate.py              the repository gate decision
+│   ├── findings.py          role findings records and the overlap count
 │   ├── hooks.py             git pre-commit installation
 │   ├── jsonschema.py        in-tree schema checking, no dependency
-│   └── cli.py               init | create | check | lint | status
+│   └── cli.py               the command line surface
+│
+├── skills/amigos/           the orchestrating skill
+├── agents/                  product.md, dev.md, qa.md
 │
 ├── scripts/
 │   ├── check_dor.py
 │   ├── create_story.py
+│   ├── findings.py
 │   ├── gate.py
 │   └── lint_acceptance.py
 │
@@ -1011,6 +1097,8 @@ amigos-skills/
 │
 ├── schemas/
 │   ├── dor.schema.json
+│   ├── findings.schema.json
+│   ├── run-summary.schema.json
 │   └── state.schema.json
 │
 ├── templates/
@@ -1026,8 +1114,11 @@ amigos-skills/
 └── docs/
 ```
 
-`skills/` and `agents/` arrive with `/amigos`; the plugin manifest declares them
-at that point and not before. A Codex mirror follows once the core loop works.
+A Codex mirror follows once the core loop works.
+
+`.amigos/stories/` is the specification; `.amigos/runs/` is evidence about how a
+contract was produced. Nothing downstream reads the run records, which is why
+they live one directory away from the contract a downstream agent does read.
 
 The project's own `.amigos/` directory is intentionally part of the repository.
 
@@ -1046,6 +1137,8 @@ amigos check STORY-123      # evaluate the Definition of Ready, write dor.json
 amigos lint STORY-123       # report unjudgeable acceptance criteria
 amigos status               # summarise every story
 amigos gate --staged        # may this change touch what it touches?
+amigos state STORY-123 --set amigos_running    # record a lifecycle transition
+amigos findings STORY-123 --product p.json --dev d.json --qa q.json
 amigos hooks install        # install the git pre-commit adapter
 ```
 
@@ -1065,6 +1158,7 @@ python scripts/check_dor.py STORY-123
 python scripts/lint_acceptance.py STORY-123
 python scripts/create_story.py STORY-123
 python scripts/gate.py --staged
+python scripts/findings.py STORY-123 --product p.json --dev d.json --qa q.json
 ```
 
 Agent-facing commands:
@@ -1550,13 +1644,24 @@ Development
 QA
 ```
 
-Preserve role boundaries and add bounded challenge rounds.
+Preserve role boundaries. The three draft blind — same ticket, same repository,
+no shared context — and a reconciliation pass merges them.
 
-Use dogfooding evidence to determine whether independence improves contract quality.
+Use dogfooding evidence to determine whether independence improves contract
+quality. Evidence means a number, so each role returns a structured findings
+record and the overlap between them is computed rather than judged.
 
 Success criterion:
 
-> The three agents discover different classes of ambiguity, scope risk, and failure modes.
+> A run records one findings record per role and a computed count of findings
+> named by exactly one role, and that count is greater than zero.
+
+The original wording of this criterion was "the three agents discover different
+classes of ambiguity, scope risk, and failure modes", which nobody could judge,
+because nothing defined *different*. The `/amigos` run that drafted this phase's
+contract found that during its challenge pass and asked. Recording the fix here
+rather than quietly rewriting history: an unfalsifiable kill criterion is how a
+design survives without earning it.
 
 Do not keep the multi-agent design if it only produces duplicated prose.
 

@@ -4,5 +4,6 @@
   "description": "Contract-first development gate: turn a ticket into a testable acceptance contract before implementation begins.",
   "license": "MIT",
   "homepage": "https://github.com/zhouhang-chn/amigos-skills",
-  "skills": "./skills"
+  "skills": "./skills",
+  "agents": "./agents"
 }

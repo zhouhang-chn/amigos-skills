@@ -1,9 +1,9 @@
 """A minimal JSON Schema checker covering the keywords this project's schemas use.
 
 A dependency-free validator keeps the promise that the gate runs in any
-repository with no install step. It supports exactly the keywords used by
-``schemas/dor.schema.json`` and ``schemas/state.schema.json`` and raises on any
-keyword it does not implement, so a schema cannot quietly go unchecked.
+repository with no install step. It supports exactly the keywords used by the
+schemas under ``schemas/`` and raises on any keyword it does not implement, so
+a schema cannot quietly go unchecked.
 """
 
 from __future__ import annotations
@@ -14,6 +14,7 @@ from pathlib import Path
 SUPPORTED = {
     "$schema", "$id", "title", "description", "type", "required", "properties",
     "additionalProperties", "enum", "const", "items", "minimum", "minLength",
+    "minItems",
 }
 
 _TYPES: dict[str, type | tuple[type, ...]] = {
@@ -67,9 +68,12 @@ def validate(instance: object, schema: dict, path: str = "$") -> list[str]:
                 elif isinstance(extra, dict):
                     errors.extend(validate(value, extra, f"{path}.{key}"))
 
-    if isinstance(instance, list) and isinstance(schema.get("items"), dict):
-        for i, item in enumerate(instance):
-            errors.extend(validate(item, schema["items"], f"{path}[{i}]"))
+    if isinstance(instance, list):
+        if "minItems" in schema and len(instance) < schema["minItems"]:
+            errors.append(f"{path}: fewer than minItems {schema['minItems']}")
+        if isinstance(schema.get("items"), dict):
+            for i, item in enumerate(instance):
+                errors.extend(validate(item, schema["items"], f"{path}[{i}]"))
 
     return errors
 

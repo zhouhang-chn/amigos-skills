@@ -15,7 +15,7 @@ See [versions/v1.0-self-hosting/](versions/v1.0-self-hosting/) and its
 | v0.1 | Contract format and deterministic validator | 0 + 1 | Complete |
 | v0.2 | Repository gate: no source change without a ready story | 2 | Complete |
 | v0.3 | `/amigos` MVP, single orchestrator | 3 | Complete |
-| v0.4 | Product, Development and QA as independent subagents | 4 | Not started |
+| v0.4 | Product, Development and QA as independent subagents | 4 | In progress |
 | v0.5 | `/implement` | 5 | Not started |
 | v0.6 | Strong self-hosting enforcement | 6 | Not started |
 | v0.7 | Dogfooding failure corpus and evals | 7 | Not started |

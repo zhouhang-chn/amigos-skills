@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "story_id": "READY-001",
+  "role": "qa",
+  "findings": [
+    {
+      "target_file": "acceptance.feature",
+      "target_section": "Scenario: the main path",
+      "risk_dimension": "testability",
+      "statement": "No outcome in the request can be judged from outside the process."
+    },
+    {
+      "target_file": "acceptance.feature",
+      "target_section": "Desired  Outcome",
+      "risk_dimension": "ambiguity",
+      "statement": "Two reviewers would disagree about what counts as the outcome changing."
+    },
+    {
+      "target_file": "acceptance.feature",
+      "target_section": "in scope",
+      "risk_dimension": "scope",
+      "statement": "Session revocation has no scenario either way."
+    }
+  ]
+}

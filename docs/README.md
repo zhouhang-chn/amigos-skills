@@ -25,6 +25,7 @@ Execution docs live under [versions/](versions/), never directly under `docs/`.
 | [versions/v0.1-deterministic-contract-core/](versions/v0.1-deterministic-contract-core/) | Milestone 1: the contract format and the deterministic validator. |
 | [versions/v0.2-repository-gate/](versions/v0.2-repository-gate/) | Milestone 2: enforcement, so the contract stops being advisory. |
 | [versions/v0.3-amigos-mvp/](versions/v0.3-amigos-mvp/) | Milestone 3: `/amigos`, so contracts are generated rather than hand-authored. |
+| [versions/v0.4-independent-subagents/](versions/v0.4-independent-subagents/) | Milestone 4: three roles drafting blind, and the count that decides whether the split earns its cost. |
 
 ## Two planning surfaces, one boundary
 
@@ -33,6 +34,8 @@ The repository carries planning artifacts in two places and they do not overlap:
 - `.amigos/stories/<id>/` holds **the product's acceptance contracts**: what a
   change must achieve and how success is judged. This is the artifact the
   framework itself produces, and it is read by every downstream agent.
+  `.amigos/runs/` sits beside it and holds evidence about how a contract was
+  produced — read by people, not by agents.
 - `docs/versions/<version>/` holds **how the framework gets built**: gap
   analysis, design, ordered tasks, implementation notes.
 

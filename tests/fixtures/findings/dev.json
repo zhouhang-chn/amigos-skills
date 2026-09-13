@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "story_id": "READY-001",
+  "role": "dev",
+  "findings": [
+    {
+      "target_file": "constraints.md",
+      "target_section": "Dependencies",
+      "risk_dimension": "dependency",
+      "statement": "The request assumes a token service that this repository does not contain."
+    },
+    {
+      "target_file": "intent.md",
+      "target_section": "## In Scope",
+      "risk_dimension": "Scope",
+      "statement": "Revoking existing sessions needs a store this design has no access to."
+    },
+    {
+      "target_file": "constraints.md",
+      "target_section": "Invariants",
+      "risk_dimension": "invariant",
+      "statement": "Nothing records that an expired token must stay expired after a retry."
+    }
+  ]
+}
