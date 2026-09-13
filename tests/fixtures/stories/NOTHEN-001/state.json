@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "story_id": "NOTHEN-001",
+  "declared_state": "draft",
+  "updated_at": "2026-09-13T00:00:00Z",
+  "history": [
+    {
+      "state": "draft",
+      "at": "2026-09-13T00:00:00Z",
+      "note": "fixture"
+    }
+  ]
+}

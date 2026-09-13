@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/zhouhang-chn/amigos-skills/schemas/state.schema.json",
+  "title": "Amigos story state",
+  "description": "Agent-owned lifecycle record for a story. Agents may declare draft, amigos_running or contract_change. They may never declare ready or blocked: readiness is derived by the validator and written to dor.json.",
+  "type": "object",
+  "required": ["schema_version", "story_id", "declared_state", "updated_at"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "story_id": { "type": "string", "minLength": 1 },
+    "declared_state": {
+      "type": "string",
+      "enum": ["draft", "amigos_running", "contract_change"]
+    },
+    "updated_at": { "type": "string", "minLength": 1 },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["state", "at"],
+        "additionalProperties": false,
+        "properties": {
+          "state": { "type": "string", "enum": ["draft", "amigos_running", "contract_change"] },
+          "at": { "type": "string", "minLength": 1 },
+          "note": { "type": "string" }
+        }
+      }
+    }
+  }
+}

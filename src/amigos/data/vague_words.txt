@@ -1,0 +1,16 @@
+# Vocabulary that is not independently judgeable in a Then clause.
+# Published in README section 17. One entry per line; a blank line or a line
+# starting with '#' is ignored. An entry may contain several words, in which
+# case any run of whitespace in the contract matches.
+correct
+correctly
+appropriate
+appropriately
+reasonable
+good
+proper
+properly
+user-friendly
+works
+handled well
+expected behavior

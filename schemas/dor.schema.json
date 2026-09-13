@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/zhouhang-chn/amigos-skills/schemas/dor.schema.json",
+  "title": "Amigos Definition of Ready",
+  "description": "Derived readiness record. Generated only by the validator; never hand-edited and never written by an agent.",
+  "type": "object",
+  "required": [
+    "schema_version", "story_id", "state", "ready", "declared_state",
+    "generated_at", "generator", "checks", "failures", "blocking_questions",
+    "scenarios", "contract_hash"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "story_id": { "type": "string", "minLength": 1 },
+    "state": {
+      "type": "string",
+      "enum": ["draft", "amigos_running", "blocked", "ready", "contract_change"]
+    },
+    "ready": { "type": "boolean" },
+    "declared_state": {
+      "type": "string",
+      "enum": ["draft", "amigos_running", "contract_change"]
+    },
+    "generated_at": { "type": "string", "minLength": 1 },
+    "generator": { "type": "string", "minLength": 1 },
+    "checks": {
+      "type": "object",
+      "required": [
+        "intent_defined", "scope_defined", "constraints_defined",
+        "primary_scenario_present", "counterexamples_present",
+        "assertions_are_determinable", "blocking_questions_resolved"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "intent_defined": { "type": "boolean" },
+        "scope_defined": { "type": "boolean" },
+        "constraints_defined": { "type": "boolean" },
+        "primary_scenario_present": { "type": "boolean" },
+        "counterexamples_present": { "type": "boolean" },
+        "assertions_are_determinable": { "type": "boolean" },
+        "blocking_questions_resolved": { "type": "boolean" }
+      }
+    },
+    "failures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["check", "rule", "file", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "check": { "type": "string" },
+          "rule": { "type": "string" },
+          "file": { "type": "string" },
+          "line": { "type": ["integer", "null"] },
+          "scenario": { "type": ["string", "null"] },
+          "message": { "type": "string" }
+        }
+      }
+    },
+    "blocking_questions": { "type": "array", "items": { "type": "string" } },
+    "scenarios": {
+      "type": "object",
+      "required": ["primary", "counterexample", "total"],
+      "additionalProperties": false,
+      "properties": {
+        "primary": { "type": "integer", "minimum": 0 },
+        "counterexample": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "contract_hash": {
+      "type": "object",
+      "description": "SHA-256 of each contract input file at generation time. The baseline that contract-immutability enforcement will diff against.",
+      "additionalProperties": { "type": "string" }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "amigos-skills"
+version = "0.1.0"
+description = "Contract-first development skills for coding agents: a deterministic Definition of Ready gate."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+# Runtime is intentionally stdlib-only. The validator must run in any repository
+# without a dependency install step; see docs/component-design/validator.md.
+dependencies = []
+
+[project.scripts]
+amigos = "amigos.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/amigos"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
