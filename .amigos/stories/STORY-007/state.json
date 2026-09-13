@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "story_id": "STORY-007",
+  "declared_state": "draft",
+  "updated_at": "2026-09-13T01:32:33Z",
+  "history": [
+    {
+      "state": "draft",
+      "at": "2026-09-13T01:32:33Z",
+      "note": "story workspace created"
+    },
+    {
+      "state": "draft",
+      "at": "2026-09-13T01:32:33Z",
+      "note": "hand-authored; /amigos does not exist until v0.3"
+    }
+  ]
+}
