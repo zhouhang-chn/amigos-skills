@@ -157,3 +157,54 @@ def test_script_wrapper_matches_the_subcommand():
     )
     assert script.returncode == dor.EXIT_NOT_READY
     assert "[FAIL] assertions_are_determinable" in script.stdout
+
+
+# --- STORY-006: verify -------------------------------------------------------
+
+def test_verify_is_registered():
+    from amigos.cli import build_parser
+    args = build_parser().parse_args(["verify", "STORY-006"])
+    assert args.command == "verify"
+    assert args.story_id == "STORY-006"
+
+
+def test_verify_exits_zero_on_an_unchanged_ready_contract(scratch_repo):
+    from amigos import config as config_module, dor as dor_module, verify
+    cfg = config_module.load(root=scratch_repo)
+    dor_module.write(dor_module.evaluate(cfg, "READY-001"))
+
+    code = main(["verify", "--root", str(scratch_repo), "READY-001"])
+    assert code == verify.EXIT_OK
+
+
+def test_verify_exits_one_and_names_the_changed_file(scratch_repo, capsys):
+    from amigos import config as config_module, dor as dor_module, verify
+    cfg = config_module.load(root=scratch_repo)
+    dor_module.write(dor_module.evaluate(cfg, "READY-001"))
+    feature = scratch_repo / ".amigos" / "stories" / "READY-001" / "acceptance.feature"
+    feature.write_text(feature.read_text() + "\n# moved\n")
+
+    code = main(["verify", "--root", str(scratch_repo), "READY-001"])
+    out = capsys.readouterr().out
+
+    assert code == verify.EXIT_NOT_VERIFIED
+    assert "acceptance.feature" in out
+    assert "verified: false" in out
+
+
+def test_verify_exits_two_without_a_baseline(scratch_repo, capsys):
+    code = main(["verify", "--root", str(scratch_repo), "READY-001"])
+    assert code == 2
+    assert "contract hash" in capsys.readouterr().err
+
+
+def test_verify_json_carries_the_per_file_verdict(scratch_repo, capsys):
+    from amigos import config as config_module, dor as dor_module
+    cfg = config_module.load(root=scratch_repo)
+    dor_module.write(dor_module.evaluate(cfg, "READY-001"))
+
+    main(["verify", "--root", str(scratch_repo), "--json", "READY-001"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["verified"] is True
+    assert payload["contract"]["intent.md"] == "match"

@@ -11,6 +11,7 @@
 | [component-design/validator.md](component-design/validator.md) | The deterministic Definition of Ready: checks, rules, exit codes. |
 | [component-design/gate.md](component-design/gate.md) | The repository gate: what it governs, how it resolves a story, what it cannot do. |
 | [component-design/orchestration.md](component-design/orchestration.md) | The `/amigos` skill: phases, bounds, and what a skill may never do. |
+| [component-design/execution.md](component-design/execution.md) | The `/implement` skill and `amigos verify`: phases, bounds, and how a contract is held to. |
 
 The root [README.md](../README.md) is the product thesis and the specification
 of intent. These docs record how the thesis is being built.
@@ -26,6 +27,7 @@ Execution docs live under [versions/](versions/), never directly under `docs/`.
 | [versions/v0.2-repository-gate/](versions/v0.2-repository-gate/) | Milestone 2: enforcement, so the contract stops being advisory. |
 | [versions/v0.3-amigos-mvp/](versions/v0.3-amigos-mvp/) | Milestone 3: `/amigos`, so contracts are generated rather than hand-authored. |
 | [versions/v0.4-independent-subagents/](versions/v0.4-independent-subagents/) | Milestone 4: three roles drafting blind, and the count that decides whether the split earns its cost. |
+| [versions/v0.5-implement/](versions/v0.5-implement/) | Milestone 5: `/implement`, so a ready contract drives the work rather than being read once. |
 
 ## Two planning surfaces, one boundary
 

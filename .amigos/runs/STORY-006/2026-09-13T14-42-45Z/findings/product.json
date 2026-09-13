@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "story_id": "STORY-006",
+  "role": "product",
+  "findings": [
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "scope",
+      "statement": "The ticket lists \"run tests and evals\", but no eval corpus, golden task or grader exists and evals are assigned to Phase 7 (STORY-008), so whether this milestone runs anything beyond the repository's own test suite is unsettled."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Out of Scope",
+      "risk_dimension": "scope",
+      "statement": "Whether /implement ships any mechanical protection against editing acceptance.feature, or only the stated rule, is unsettled: README Phase 6 and STORY-007's Out of Scope both assign contract immutability to a later milestone, yet the gate exempts .amigos/** so nothing refuses the edit today."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "scope",
+      "statement": "The request does not say whether this story includes actually running /implement against a real story, or whether shipping the skill is the whole deliverable \u2014 v0.4 deliberately did not close until its dogfooding run produced a number."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Success",
+      "risk_dimension": "testability",
+      "statement": "The milestone's exit criterion \u2014 \"moves from a ready contract to verified implementation without redefining the requirement\" \u2014 names no evidence: it does not say which story demonstrates it, what counts as \"verified\", or what artefact shows the requirement was not redefined."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Out of Scope",
+      "risk_dimension": "scope",
+      "statement": "The command signature is a story id alone, and the request does not say what /implement does when the invoking user adds instructions beyond the contract, which is the main path by which scope re-enters after the gate has been satisfied."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Desired Outcome",
+      "risk_dimension": "ambiguity",
+      "statement": "\"Check for scope expansion\" does not say what the change is compared against \u2014 constraints.md's Relevant Components, intent.md's Out of Scope, or the diff alone \u2014 nor whether a detected expansion stops the run or is only reported."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Desired Outcome",
+      "risk_dimension": "testability",
+      "statement": "\"Report discrepancies\" does not say where the report goes; /amigos is forbidden from writing commentary into the story directory and puts its run evidence in .amigos/runs/, so whether an implement run leaves any durable record or only speaks in chat is undecided."
+    },
+    {
+      "role": "product",
+      "target_file": "acceptance.feature",
+      "target_section": "Scenarios",
+      "risk_dimension": "ambiguity",
+      "statement": "\"Establish a baseline where useful\" reads either as running the existing suite before any change or as requiring the new tests to fail first, and the two produce different observable evidence."
+    },
+    {
+      "role": "product",
+      "target_file": "acceptance.feature",
+      "target_section": "Scenarios",
+      "risk_dimension": "coverage",
+      "statement": "Nothing states what /implement does with a Then clause it cannot express as an automated test \u2014 several clauses in this repository's own contracts assert on prompt text or on a file's absence \u2014 nor whether such a clause blocks the run or is reported and skipped."
+    },
+    {
+      "role": "product",
+      "target_file": "acceptance.feature",
+      "target_section": "Scenarios",
+      "risk_dimension": "coverage",
+      "statement": "The request covers only the ready and not-ready cases; it says nothing about a story id that does not exist, or a contract the validator cannot read at all (exit code 2) as distinct from one evaluated and found not ready."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "ambiguity",
+      "statement": "\"Implement the minimum required behavior\" has no stated arbiter: minimal against the acceptance scenarios and minimal against intent.md's In Scope can differ, and nothing says which governs when they do."
+    },
+    {
+      "role": "product",
+      "target_file": "constraints.md",
+      "target_section": "Technical Constraints",
+      "risk_dimension": "compatibility",
+      "statement": "README section 14 tells /implement to read dor.json for \"ready\": true, while docs/component-design/gate.md states a committed dor.json is a record and never an authority because the gated agent can write it; the contract must settle which rule /implement follows."
+    },
+    {
+      "role": "product",
+      "target_file": "constraints.md",
+      "target_section": "Invariants",
+      "risk_dimension": "invariant",
+      "statement": "Declaring contract_change on discovering a contract problem withholds readiness, after which the gate refuses the partially written code; the request does not say whether that partial work is reverted, left in place, or committed before the declaration."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Out of Scope",
+      "risk_dimension": "scope",
+      "statement": "Whether an implemented story is recorded anywhere is unsettled: the lifecycle has no declared state between ready and the next contract change, so nothing distinguishes a ready story that has been built from one that has not."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "scope",
+      "statement": "The request does not say whether /implement performs git operations \u2014 creating the branch that lets the gate resolve the story, staging, committing \u2014 or assumes a resolvable active story already exists in the environment."
+    },
+    {
+      "role": "product",
+      "target_file": "constraints.md",
+      "target_section": "Dependencies",
+      "risk_dimension": "dependency",
+      "statement": "The skill is shipped to downstream repositories whose build and test commands it cannot know; .amigos/config.json carries no test command and the request does not say how one is discovered."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Out of Scope",
+      "risk_dimension": "scope",
+      "statement": "Packaging beyond skills/implement/SKILL.md is unsettled: README section 19 also names a CLAUDE.md repository rule this checkout does not contain, and section 20 names a Codex mirror the roadmap defers."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Problem",
+      "risk_dimension": "ambiguity",
+      "statement": "README section 14's \"business code\" is never reconciled with the gate's \"governed files\", so whether /implement may write exempt paths such as docs/ while a story is not ready is open to two readings."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "scope",
+      "statement": "Whether a single /implement run must complete a whole story, and what happens when it cannot \u2014 resumption, partial delivery, a second run over the same contract \u2014 is not addressed."
+    },
+    {
+      "role": "product",
+      "target_file": "constraints.md",
+      "target_section": "Relevant Components",
+      "risk_dimension": "compatibility",
+      "statement": "tests/test_dogfooding.py enumerates this repository's story ids and excludes STORY-006, so closing this milestone changes a governed test file as a side effect, and the same happens for whichever story /implement is first used on."
+    }
+  ]
+}

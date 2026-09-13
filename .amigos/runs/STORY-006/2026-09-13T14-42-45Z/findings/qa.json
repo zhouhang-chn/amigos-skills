@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "story_id": "STORY-006",
+  "role": "qa",
+  "findings": [
+    {
+      "role": "qa",
+      "target_file": "intent.md",
+      "target_section": "Success",
+      "risk_dimension": "testability",
+      "statement": "The exit criterion 'moves from a ready contract to verified implementation without redefining the requirement' names no artifact. Nothing says what a reviewer inspects to decide the requirement was not redefined, so two reviewers can judge the same run differently. A decidable form exists in this repository already: the sha256 of each contract input file still equals the hash dor.json recorded before the run."
+    },
+    {
+      "role": "qa",
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "scope",
+      "statement": "The ticket does not settle whether /implement is SKILL.md text only or also ships code (a coverage report, a contract-immutability check, a new amigos subcommand). That decision changes what can be judged from outside: prompt-only delivery leaves every scenario here to review rather than to a test."
+    },
+    {
+      "role": "qa",
+      "target_file": "acceptance.feature",
+      "target_section": "Scenario: A readiness verdict recorded in the story is not trusted on its own",
+      "risk_dimension": "ambiguity",
+      "statement": "README section 14 says dor.json 'must contain ready: true' before business code changes; README section 18 says a committed dor.json is a record and never an authority because it is writable by the agent being gated. Two careful readers get two different preconditions for /implement, and one of them lets an agent authorise itself by editing a file."
+    },
+    {
+      "role": "qa",
+      "target_file": "acceptance.feature",
+      "target_section": "Scenario: A test for absent behaviour fails before the source changes",
+      "risk_dimension": "ambiguity",
+      "statement": "'Establish a baseline where useful' gives no rule for when a baseline is required. The case it exists for is exactly the case an agent will judge as not useful: a test written after the code, which passes on the first run and therefore proves nothing about intent."
+    },
+    {
+      "role": "qa",
+      "target_file": "acceptance.feature",
+      "target_section": "Scenario: A Then no test can observe is named rather than dropped",
+      "risk_dimension": "coverage",
+      "statement": "'Translate relevant Then clauses into tests' defines neither 'relevant' nor what happens to a Then no test in this repository can observe. STORY-005's contract contains such clauses ('no agent's prompt contains another agent's output'), so the first dogfooding target already carries the failure mode: silently skip the hard clauses and report the contract as verified."
+    },
+    {
+      "role": "qa",
+      "target_file": "intent.md",
+      "target_section": "Out of Scope",
+      "risk_dimension": "scope",
+      "statement": "'Check for scope expansion' names no basis of comparison. Candidates in this system are the acceptance scenarios, the 'Relevant Components' list in constraints.md, and the story's Out of Scope entries; the ticket picks none, so the check has no pass or fail."
+    },
+    {
+      "role": "qa",
+      "target_file": "constraints.md",
+      "target_section": "Invariants",
+      "risk_dimension": "invariant",
+      "statement": "'The implementation skill must not modify acceptance criteria' has no mechanical backing at v0.5: .amigos/** is exempt in .amigos/config.json, so the repository gate and the PreToolUse hook both permit an implementation agent to edit acceptance.feature. The only observable trace of a violation is hash drift against dor.json's contract_hash, and nothing currently compares them after a run."
+    },
+    {
+      "role": "qa",
+      "target_file": "constraints.md",
+      "target_section": "Dependencies",
+      "risk_dimension": "dependency",
+      "statement": "Every governed edit /implement makes is subject to the gate's active-story resolution (AMIGOS_STORY, .amigos/ACTIVE, branch name). The ticket does not say that /implement makes its story resolvable. This checkout is currently on a detached HEAD, where branch resolution yields nothing and the first Write is refused."
+    },
+    {
+      "role": "qa",
+      "target_file": "acceptance.feature",
+      "target_section": "Scenario: The run takes no privileged path around the gate",
+      "risk_dimension": "invariant",
+      "statement": "The ticket lists no prohibition on the obvious escapes from a refusal: editing .claude/settings.json, uninstalling the pre-commit hook, or committing with --no-verify. README section 31 forbids a privileged path, but a skill that is never told this will find the escape faster than the fix."
+    },
+    {
+      "role": "qa",
+      "target_file": "acceptance.feature",
+      "target_section": "Scenario: An unsatisfied scenario is reported rather than made green",
+      "risk_dimension": "coverage",
+      "statement": "The ticket has no failure mode for a run that cannot finish: tests still failing, a behaviour that turns out to be infeasible, budget exhausted. Nothing says whether partial code stays, whether the run reports success, or what state.json declares. The v0.4 notes record a run terminated by a session rate limit, so this is not hypothetical."
+    },
+    {
+      "role": "qa",
+      "target_file": "open-questions.md",
+      "target_section": "Blocking",
+      "risk_dimension": "ambiguity",
+      "statement": "On a contract conflict the ticket shows '/implement -> contract_change -> /amigos' without saying who acts. Both readings are buildable: /implement runs 'amigos state --set contract_change' and stops for a human, or it invokes /amigos itself. The second lets one session both discover a conflict and rewrite the criterion it conflicted with."
+    },
+    {
+      "role": "qa",
+      "target_file": "constraints.md",
+      "target_section": "Technical Constraints",
+      "risk_dimension": "feasibility",
+      "statement": "'Run tests and evals' names evals, which do not exist in this repository; eval export is phase 7 (v0.7) and 'amigos export-evals' is listed as a potential later command. The clause cannot be satisfied as written at v0.5, and an agent told to run evals will either invent one or quietly drop the step."
+    },
+    {
+      "role": "qa",
+      "target_file": "acceptance.feature",
+      "target_section": "Scenario: A ready contract reaches verified implementation",
+      "risk_dimension": "testability",
+      "statement": "The ticket names no output for a run. Everything a reviewer would check afterwards - which scenario each test covers, which files changed and why, which scenarios remain unsatisfied - is only observable if the run leaves a report, and the ticket neither requires one nor says where it goes. /amigos settled the equivalent question by naming .amigos/runs/ as evidence outside the story directory."
+    },
+    {
+      "role": "qa",
+      "target_file": "intent.md",
+      "target_section": "Why Now",
+      "risk_dimension": "feasibility",
+      "statement": "v0.5 is judged by running /implement on Amigos Skills itself, and the v0.4 implementation notes record two environment facts that break that self-run: an agent type created in a session is not addressable in that session, and an edited SKILL.md serves its pre-edit text until something re-registers it. A milestone whose evidence is a self-run inherits both."
+    }
+  ]
+}

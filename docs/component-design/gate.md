@@ -71,6 +71,12 @@ Glob matching is in-tree: `*` stops at a path separator, `**` crosses them, so
 
 ## Readiness is recomputed, never read
 
+From v0.5 the gate is not the only component holding this rule: `amigos verify`
+re-derives readiness the same way and reads `dor.json` for one thing only, the
+recorded `contract_hash` baseline. README section 14 states the opposite and is
+the text that needs correcting; see
+[execution.md](execution.md).
+
 The gate calls `dor.evaluate()` and ignores any committed `dor.json`. Two
 reasons, and the second is the important one:
 

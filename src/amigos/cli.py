@@ -1,4 +1,4 @@
-"""Command line surface: ``amigos init | create | check | lint | status | gate | state | findings | hooks``."""
+"""Command line surface: ``amigos init | create | check | verify | lint | status | gate | state | findings | hooks``."""
 
 from __future__ import annotations
 
@@ -9,7 +9,8 @@ import sys
 from pathlib import Path
 
 from . import (__version__, config as config_module, dor, findings as findings_module,
-               gate as gate_module, hooks, lint as lint_module, story)
+               gate as gate_module, hooks, lint as lint_module, story,
+               verify as verify_module)
 from .gherkin import ParseError
 
 EXIT_OK = 0
@@ -54,6 +55,12 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("--no-write", action="store_true",
                        help="evaluate without writing dor.json")
     _add_common(check)
+
+    verify_cmd = subparsers.add_parser(
+        "verify", help="re-derive readiness and diff the contract against its recorded hashes")
+    verify_cmd.add_argument("story_id")
+    verify_cmd.add_argument("--json", action="store_true", dest="as_json")
+    _add_common(verify_cmd)
 
     lint_cmd = subparsers.add_parser("lint", help="lint acceptance criteria")
     target = lint_cmd.add_mutually_exclusive_group(required=True)
@@ -117,6 +124,8 @@ def main(argv: list[str] | None = None) -> int:
             return _create(cfg, args)
         if args.command == "check":
             return _check(cfg, args)
+        if args.command == "verify":
+            return _verify(cfg, args)
         if args.command == "lint":
             return _lint(cfg, args)
         if args.command == "status":
@@ -204,6 +213,32 @@ def _reason(result: dor.Result) -> str:
     failed = [n for n in dor.CHECK_NAMES if not result.checks[n]]
     return f"{len(failed)} check(s) failed: {', '.join(failed)}"
 
+
+
+def _verify(cfg: config_module.Config, args: argparse.Namespace) -> int:
+    """Readiness is recomputed here, never read from the verdict beside the contract."""
+    result = verify_module.evaluate(cfg, args.story_id)
+    if args.as_json:
+        print(json.dumps(result.as_dict(), indent=2))
+        return result.exit_code
+
+    print(f"{result.story_id}: {result.state}")
+    for name in verify_module.HASHED_FILES:
+        print(f"  [{result.contract[name].upper()}] {name}")
+    if result.changed:
+        print()
+        print(f"  {len(result.changed)} contract file(s) differ from the hash "
+              f"{verify_module.BASELINE_FILE} recorded:")
+        for name in result.changed:
+            print(f"    {result.directory / name}")
+        print("\n  The requirement moved during implementation. Take the change "
+              "through\n  'amigos state <id> --set contract_change' and the amigos "
+              "skill, not by\n  re-recording the verdict.")
+    elif not result.ready:
+        print("\n  The contract is unchanged, but the story is not ready.")
+
+    print(f"\nverified: {str(result.verified).lower()}")
+    return result.exit_code
 
 def _lint(cfg: config_module.Config, args: argparse.Namespace) -> int:
     if args.file is not None:

@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "story_id": "STORY-006",
+  "role": "dev",
+  "findings": [
+    {
+      "role": "dev",
+      "target_file": "constraints.md",
+      "target_section": "Dependencies",
+      "risk_dimension": "dependency",
+      "statement": "Responsibility 5 says 'Run tests and evals', but this repository contains no eval harness: there is no evals/ directory, no grader runner, and no amigos export-evals command. README lists eval export under Phase 7 / STORY-008, two milestones away. Only the 'run tests' half of that step can be performed."
+    },
+    {
+      "role": "dev",
+      "target_file": "constraints.md",
+      "target_section": "Technical Constraints",
+      "risk_dimension": "dependency",
+      "statement": "Nothing in the protocol names how a repository runs its tests. .amigos/config.json carries stories_dir, lint, dor and gate only, and config.py reads no other key. 'Run tests' resolves to 'python -m pytest -q' here by convention in docs/development-workflow.md, and to nothing at all in a downstream repository."
+    },
+    {
+      "role": "dev",
+      "target_file": "constraints.md",
+      "target_section": "Technical Constraints",
+      "risk_dimension": "feasibility",
+      "statement": "Responsibility 6, 'Check for scope expansion', has no mechanism in this system. Nothing compares a code diff against intent.md's In Scope and Out of Scope lists, and no CLI subcommand computes it (build_parser exposes init, create, check, lint, status, gate, state, findings, hooks). As written the check is a model's self-assessment, which is the thing this project replaces elsewhere with code."
+    },
+    {
+      "role": "dev",
+      "target_file": "constraints.md",
+      "target_section": "Invariants",
+      "risk_dimension": "invariant",
+      "statement": "The gate exempts '.amigos/**', so an implementation agent can edit acceptance.feature and the PreToolUse hook will permit it. 'The implementation skill must not modify acceptance criteria' is therefore prompt text only. dor.json.contract_hash is recorded as the baseline but nothing diffs against it anywhere in src/, and docs/versions/v0.2-repository-gate/gap-analysis.md assigns that diffing to v0.6."
+    },
+    {
+      "role": "dev",
+      "target_file": "constraints.md",
+      "target_section": "Technical Constraints",
+      "risk_dimension": "invariant",
+      "statement": "Writes made through Bash are not gated - docs/component-design/gate.md records this hole as deferred 'to be decided on evidence'. /implement is the first skill that needs Bash (to run tests), so it is the first consumer for which the gate's coverage is materially weaker than for a drafting agent."
+    },
+    {
+      "role": "dev",
+      "target_file": "constraints.md",
+      "target_section": "Technical Constraints",
+      "risk_dimension": "compatibility",
+      "statement": "There is no lifecycle state meaning 'implementation in progress'. story.DECLARABLE_STATES is ('draft', 'amigos_running', 'contract_change') and state.schema.json pins a closed enum with additionalProperties false, in both the top level and each history entry. Recording an implementation run in the lifecycle is a schema change touching story.py, dor.py, the schema, README section 5 and docs/component-design/contract-protocol.md - and any state added must not withhold readiness, or the gate would refuse the very writes the run is making."
+    },
+    {
+      "role": "dev",
+      "target_file": "constraints.md",
+      "target_section": "Invariants",
+      "risk_dimension": "compatibility",
+      "statement": "The ticket says the skill checks that dor.json contains 'ready': true. gate.py deliberately does the opposite: it recomputes readiness from the contract files on every call because a committed dor.json 'may be stale, and it is writable by the agent being gated'. A skill that trusts the file would accept a verdict the gate rejects, or authorise implementation from a hand-edited record."
+    },
+    {
+      "role": "dev",
+      "target_file": "constraints.md",
+      "target_section": "Invariants",
+      "risk_dimension": "feasibility",
+      "statement": "Declaring contract_change withholds readiness immediately, so the gate and the pre-commit hook then refuse every governed write - including committing the partial implementation already in the working tree. The ticket's escalation path does not say whether the skill declares contract_change on discovery, after reporting, or only once the working tree is clean, and the three differ in whether work in progress can be saved."
+    },
+    {
+      "role": "dev",
+      "target_file": "constraints.md",
+      "target_section": "Technical Constraints",
+      "risk_dimension": "ambiguity",
+      "statement": "'Establish a baseline where useful' names no criterion for 'useful' and no artifact. Nothing in the repository defines what a baseline is or where it would be recorded, so the step is entirely the implementer's judgement and leaves no trace a reviewer could check."
+    },
+    {
+      "role": "dev",
+      "target_file": "constraints.md",
+      "target_section": "Technical Constraints",
+      "risk_dimension": "testability",
+      "statement": "docs/versions/v0.4-independent-subagents/implementation-notes.md records that skills are snapshotted when a session registers them, so a skill edited mid-session serves its old text. The session that writes skills/implement/SKILL.md is therefore unlikely to be the session that can invoke it, which constrains how this milestone can demonstrate itself."
+    },
+    {
+      "role": "dev",
+      "target_file": "constraints.md",
+      "target_section": "Relevant Components",
+      "risk_dimension": "compatibility",
+      "statement": "tests/test_dogfooding.py enumerates STORY_IDS as a literal tuple that omits STORY-006, so a newly ready story is not automatically held to the self-hosting invariant. Closeout also requires 'amigos status' to exit 0, which it cannot while STORY-006 declares amigos_running or fails a check."
+    },
+    {
+      "role": "dev",
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "scope",
+      "statement": "The ticket does not settle whether v0.5 ships only a prompt (skills/implement/SKILL.md plus tests holding it to the code, the shape v0.3 and v0.4 used) or also new deterministic support: a contract-immutability diff, a scope-expansion check, a test-command config key, a lifecycle state. The two readings differ by a schema change and several new CLI surfaces, and the second is plausibly more than one change."
+    },
+    {
+      "role": "dev",
+      "target_file": "intent.md",
+      "target_section": "Success",
+      "risk_dimension": "dependency",
+      "statement": "The exit criterion requires moving from a ready contract to verified implementation, but /implement cannot implement STORY-006 - the skill would have to exist first. STORY-001 to STORY-005 and STORY-007 are already implemented, so the story that demonstrates the criterion does not exist yet and the ticket does not name it."
+    },
+    {
+      "role": "dev",
+      "target_file": "acceptance.feature",
+      "target_section": "Scenarios",
+      "risk_dimension": "testability",
+      "statement": "'The project moves from a ready contract to verified implementation without redefining the requirement' names no artifact anyone can inspect. Without a stated observable - for example that the four contract files' hashes match dor.json.contract_hash before and after, and that the suite passes - no scenario can pass or fail this criterion."
+    },
+    {
+      "role": "dev",
+      "target_file": "acceptance.feature",
+      "target_section": "Scenarios",
+      "risk_dimension": "ambiguity",
+      "statement": "'Translate relevant Then clauses into tests' leaves 'relevant' undefined, and this repository's own contracts contain Then clauses no unit test can judge - for example STORY-004's 'the skill reports the remaining findings'. Two readers would disagree about which clauses must become tests and what happens to the ones that cannot."
+    },
+    {
+      "role": "dev",
+      "target_file": "acceptance.feature",
+      "target_section": "Scenarios",
+      "risk_dimension": "coverage",
+      "statement": "No scenario covers /implement invoked against a story that is not ready, does not exist, or is structurally unusable (dor.evaluate raises StructuralError and writes no dor.json, exit code 2). The refusal is the load-bearing behaviour of the skill and is the case most likely to be implemented by accident."
+    }
+  ]
+}

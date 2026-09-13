@@ -10,3 +10,7 @@ build/
 
 # Per-checkout pointer to the active story; not part of the contract.
 .amigos/ACTIVE
+
+# Editor swap files.
+*.swp
+*.swo

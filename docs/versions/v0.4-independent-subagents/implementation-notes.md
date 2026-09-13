@@ -2,13 +2,50 @@
 
 Story: **STORY-005**. Implementation committed in `e0f2c56`.
 
-## Status: built, not yet measured
+## Status: complete, measured on the re-run
+
+The milestone's exit criterion was evaluated on 2026-09-13 and passed. The run
+that evaluated it is `.amigos/runs/STORY-006/2026-09-13T14-42-45Z`.
+
+```text
+50 findings, 30 distinct
+product   20 findings,   4 named by no other role
+dev       16 findings,   8 named by no other role
+qa        14 findings,   8 named by no other role
+shared 10   unique 20        split_added_nothing: false
+```
+
+Twenty findings were named by exactly one role. The criterion asked for a number
+greater than zero, so the multi-agent design earns its cost and survives. The
+section below records the first attempt, which produced no count.
+
+The two things the milestone could not test on itself were both tested on this
+run, and both held:
+
+- **Agent registration works.** `subagent_type: product`, `dev` and `qa` all
+  resolved. The three roles ran as registered agent types, so the
+  `tools: Read, Grep, Glob, Write` restriction in their frontmatter was
+  structural rather than an instruction a general-purpose agent could ignore.
+- **The shared-vocabulary guard did its job.** Ten findings collided across
+  roles on `(target_section, risk_dimension)` — including all three roles
+  landing on the missing eval harness — which is the count behaving as a
+  measurement rather than as a reward for coining new words.
+
+What the split actually bought, on this run: Development alone found that
+declaring `contract_change` withholds readiness and therefore blocks committing
+the partial work already in the tree. QA alone found that the ticket named no
+prohibition on the obvious escapes from a gate refusal. Product alone found that
+README's "business code" is never reconciled with the gate's "governed files".
+None of those is a restatement of another, and none came from the role that owns
+the file they land in.
+
+## The first attempt: built, not yet measured
 
 Everything the milestone needs is built, tested and committed. The milestone's
 **exit criterion has not been evaluated**, because the dogfooding run that would
 evaluate it could not complete. Details below. `milestones.md` and
-`roadmaps.md` therefore still read *In progress*, and will keep reading that
-until a run produces a count.
+`roadmaps.md` read *In progress* for as long as that was true, and were flipped
+to *Complete* only once the re-run produced a count.
 
 Saying this plainly rather than declaring victory on the code is the point. The
 milestone was never "write three agent files"; it was "find out whether three
@@ -151,20 +188,28 @@ scripts/findings.py STORY-006 (live failed run)    exit 2, nothing written
 amigos status                                      exit 1 - STORY-006 amigos_running
 ```
 
-The one line missing is the one the milestone exists for:
+The one line missing at the time was the one the milestone exists for:
 
 ```text
 cat .amigos/runs/STORY-006/*/summary.json          does not exist
 ```
 
+## Verification on the re-run
+
+```text
+python -m pytest -q                                281 passed
+amigos check STORY-006                             exit 0, ready
+amigos status                                      exit 0, all seven stories ready
+amigos findings STORY-006 --product/--dev/--qa     50 findings, 30 distinct, 20 unique
+cat .amigos/runs/STORY-006/*/summary.json          exists
+```
+
 ## Follow-ups
 
-- Re-run `/amigos STORY-006` once the session budget resets. That run produces
-  the count, and only then does v0.4 close.
-- The same run is the first genuine test of agent registration. If
-  `subagent_type: product` resolves in a fresh session, packaging is confirmed;
-  if it does not, that is a real defect in this milestone's deliverable and the
-  agents need a different discovery path.
-- `tests/test_dogfooding.py` gains a case asserting the generated contract has a
-  run record with a unique count, once one exists. Writing the assertion before
-  the evidence would be the assertion asserting itself.
+- `tests/test_dogfooding.py` gains a case asserting a generated contract has a
+  run record with a unique count. The evidence now exists, so the assertion is
+  no longer asserting itself. The story list in that file is a literal tuple
+  that omits STORY-006, so this is a governed edit needing its own ready story.
+- The skill-staleness lag was not retested. `/amigos` served its on-disk v0.4
+  text on this run, but the session had registered it before any edit, so the
+  case that failed in v0.4 was not re-entered.
