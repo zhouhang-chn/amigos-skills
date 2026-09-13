@@ -7,3 +7,6 @@ venv/
 dist/
 build/
 .DS_Store
+
+# Per-checkout pointer to the active story; not part of the contract.
+.amigos/ACTIVE

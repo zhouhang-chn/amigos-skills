@@ -24,13 +24,14 @@ The deterministic core is implemented and this repository is held to it.
 python -m pytest -q          # the test suite
 amigos status                # every story in this repository, and its state
 amigos check STORY-002       # one story's Definition of Ready
+amigos gate --staged         # may this commit touch what it touches?
 ```
 
 | Layer | State |
 |---|---|
 | Contract protocol under `.amigos/` | Built |
 | Deterministic validator and acceptance lint | Built |
-| Repository gate | Not built |
+| Repository gate | Built |
 | `/amigos`, subagents, `/implement` | Not built |
 
 Sections 1 to 37 below are the specification of intent; they describe the whole
@@ -812,22 +813,55 @@ This should be a lint rule rather than model judgment.
 
 The system must not depend on an agent voluntarily remembering the process.
 
-Example policy:
+The rule:
 
 ```text
-No business source file may be modified unless the active story has
-.amigos/stories/<id>/dor.json with ready=true.
+No governed file may be changed unless a story is resolvable and that story's
+contract satisfies every Definition of Ready check.
 ```
 
-Possible enforcement mechanisms:
+One decision, several adapters:
 
-- Claude Code hooks;
-- Codex hooks;
-- wrapper scripts;
-- CI checks;
-- pre-commit hooks.
+```bash
+amigos gate --staged                          # the decision
+amigos hooks install                          # git pre-commit adapter
+                                              # Claude Code adapter: see section 19
+```
 
-The desired property is:
+### Which files are governed
+
+Governed by default. A path is exempt only if it matches a configured pattern:
+
+```json
+"gate": { "exempt": [".amigos/**", "docs/**", "*.md", "LICENSE", ".gitignore"] }
+```
+
+The exempt set is exactly the work that makes a story ready. Gating the contract
+files would deadlock the protocol, since a story can only become ready by
+editing a story. Everything else is governed, including directories that do not
+exist yet — an allowlist leaves each new directory unguarded until somebody
+remembers it, so the gate erodes silently.
+
+### Which story
+
+Resolved in order: the `AMIGOS_STORY` environment variable, then the
+`.amigos/ACTIVE` pointer file, then a story id appearing in the branch name.
+Matching is bounded to whole story IDs, and a branch naming two stories refuses
+rather than choosing between them.
+
+### What the gate reads
+
+Readiness is recomputed from the contract files on every call. A committed
+`dor.json` is a record, never an authority: it may be stale, and it is writable
+by the agent being gated.
+
+### What it cannot do
+
+An agent that can edit the hook configuration can disable the in-session hook,
+and `git commit --no-verify` skips the pre-commit hook. Both are true of every
+such hook. CI enforcement closes them later.
+
+The desired property at this stage is the one stated, not more:
 
 > Skipping the contract should be harder than following it.
 
@@ -839,23 +873,53 @@ The desired property is:
 CLAUDE.md
 
 .claude/
-├── skills/
-│   ├── amigos/
-│   │   └── SKILL.md
-│   └── implement/
-│       └── SKILL.md
-└── agents/
-    ├── product.md
-    ├── dev.md
-    └── qa.md
+└── settings.json          PreToolUse hook wiring the gate
+
+.claude-plugin/
+└── plugin.json
+
+skills/
+├── amigos/SKILL.md
+└── implement/SKILL.md
+
+agents/
+├── product.md
+├── dev.md
+└── qa.md
+
+integrations/claude-code/
+└── gate_hook.py           the adapter the hook runs
+```
+
+`skills/` and `agents/` arrive with `/amigos`; the plugin manifest declares them
+at that point and not before.
+
+The hook wiring:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/integrations/claude-code/gate_hook.py\""
+          }
+        ]
+      }
+    ]
+  }
+}
 ```
 
 Persistent repository rule:
 
 ```text
-Before modifying business code, verify the active story's dor.json.
+Before modifying a governed file, the gate verifies the active story's contract.
 
-If ready != true, run the amigos skill first.
+If it is not ready, run the amigos skill first.
 
 Implementation agents must not modify acceptance.feature directly.
 ```
@@ -911,13 +975,20 @@ amigos-skills/
 │   ├── lint.py              acceptance criteria rules
 │   ├── dor.py               the seven checks and dor.json generation
 │   ├── story.py             story paths, scaffolding, state.json
+│   ├── gate.py              the repository gate decision
+│   ├── hooks.py             git pre-commit installation
 │   ├── jsonschema.py        in-tree schema checking, no dependency
 │   └── cli.py               init | create | check | lint | status
 │
 ├── scripts/
 │   ├── check_dor.py
 │   ├── create_story.py
+│   ├── gate.py
 │   └── lint_acceptance.py
+│
+├── integrations/
+│   ├── claude-code/         PreToolUse adapter
+│   └── git/                 the generated pre-commit hook
 │
 ├── schemas/
 │   ├── dor.schema.json
@@ -955,6 +1026,8 @@ amigos create STORY-123     # scaffold a story contract workspace
 amigos check STORY-123      # evaluate the Definition of Ready, write dor.json
 amigos lint STORY-123       # report unjudgeable acceptance criteria
 amigos status               # summarise every story
+amigos gate --staged        # may this change touch what it touches?
+amigos hooks install        # install the git pre-commit adapter
 ```
 
 Useful flags:
@@ -972,6 +1045,7 @@ being installed:
 python scripts/check_dor.py STORY-123
 python scripts/lint_acceptance.py STORY-123
 python scripts/create_story.py STORY-123
+python scripts/gate.py --staged
 ```
 
 Agent-facing commands:

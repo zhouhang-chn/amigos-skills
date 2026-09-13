@@ -8,5 +8,14 @@
   "dor": {
     "min_primary": 1,
     "min_counterexamples": 2
+  },
+  "gate": {
+    "exempt": [
+      ".amigos/**",
+      "docs/**",
+      "*.md",
+      "LICENSE",
+      ".gitignore"
+    ]
   }
 }

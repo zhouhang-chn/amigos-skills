@@ -39,6 +39,28 @@ Which comes first depends on the phase. Through v0.1 the contracts are
 hand-authored; from v0.3 they are produced by `/amigos`, and hand-authoring a
 new contract becomes the exception that needs a reason.
 
+## Working under the gate
+
+From v0.2 this repository gates its own governed files. Start a slice by making
+the story resolvable:
+
+```bash
+git switch -c story/STORY-123-short-description   # the branch names the story
+amigos check STORY-123                            # must be ready before code
+```
+
+Contracts under `.amigos/` and docs under `docs/` are exempt, which is what lets
+gap analysis, design and the contract itself be written before the story is
+ready. Everything else — `src/`, `scripts/`, `schemas/`, `templates/`, `tests/`,
+`integrations/`, and any directory added later — needs the story ready first.
+
+If the gate refuses, it names the story it resolved and the check that failed.
+Install the commit-time backstop once per checkout:
+
+```bash
+amigos hooks install
+```
+
 ## Closeout
 
 Before declaring a milestone done:
@@ -46,6 +68,7 @@ Before declaring a milestone done:
 ```bash
 python -m pytest -q
 amigos status              # every story ready, exit code 0
+amigos gate --staged       # the slice's own changes pass the gate
 ```
 
 Then record verification results in `implementation-notes.md`, update

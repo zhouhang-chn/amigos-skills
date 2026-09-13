@@ -4,7 +4,7 @@
   "state": "ready",
   "ready": true,
   "declared_state": "draft",
-  "generated_at": "2026-09-13T01:33:14Z",
+  "generated_at": "2026-09-13T01:40:02Z",
   "generator": "amigos 0.1.0",
   "checks": {
     "intent_defined": true,

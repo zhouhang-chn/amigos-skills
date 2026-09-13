@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import __version__, config as config_module, dor, lint as lint_module, story
+from . import __version__, config as config_module, dor, gate as gate_module, hooks, lint as lint_module, story
 from .gherkin import ParseError
 
 EXIT_OK = 0
@@ -19,6 +19,7 @@ DEFAULT_CONFIG = {
     "stories_dir": ".amigos/stories",
     "lint": {"vague_words_extra": [], "vague_words_remove": []},
     "dor": {"min_primary": 1, "min_counterexamples": 2},
+    "gate": {"exempt": list(config_module.DEFAULT_GATE_EXEMPT)},
 }
 
 
@@ -62,6 +63,23 @@ def build_parser() -> argparse.ArgumentParser:
     status = subparsers.add_parser("status", help="summarise every story")
     _add_common(status)
 
+    gate = subparsers.add_parser(
+        "gate", help="decide whether a change to governed paths is permitted")
+    gate.add_argument("--changed-file", action="append", default=[], dest="changed_files",
+                      metavar="PATH", help="a changed path; repeatable")
+    gate.add_argument("--staged", action="store_true",
+                      help="take the changed paths from the git index")
+    gate.add_argument("--story", default=None,
+                      help="name the active story instead of resolving it")
+    gate.add_argument("--json", action="store_true", dest="as_json")
+    _add_common(gate)
+
+    hooks_cmd = subparsers.add_parser("hooks", help="install or inspect the git hook")
+    hooks_cmd.add_argument("action", choices=["install", "uninstall", "status"])
+    hooks_cmd.add_argument("--force", action="store_true",
+                           help="overwrite a pre-commit hook amigos did not write")
+    hooks_cmd.add_argument("--root", type=Path, default=None)
+
     return parser
 
 
@@ -70,6 +88,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "init":
             return _init(args)
+        if args.command == "hooks":
+            return _hooks(args)
         cfg = config_module.load(root=args.root, stories_dir=args.stories_dir)
         if args.command == "create":
             return _create(cfg, args)
@@ -79,6 +99,8 @@ def main(argv: list[str] | None = None) -> int:
             return _lint(cfg, args)
         if args.command == "status":
             return _status(cfg, args)
+        if args.command == "gate":
+            return _gate(cfg, args)
     except config_module.ConfigError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_ERROR
@@ -89,6 +111,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_ERROR
     except ParseError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+    except gate_module.GateUnavailable as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_ERROR
     return EXIT_ERROR
@@ -195,3 +220,52 @@ def _status(cfg: config_module.Config, args: argparse.Namespace) -> int:
         if not result.ready and worst == EXIT_OK:
             worst = EXIT_FINDINGS
     return worst
+
+
+def _gate(cfg: config_module.Config, args: argparse.Namespace) -> int:
+    if args.staged and args.changed_files:
+        print("error: pass --staged or --changed-file, not both", file=sys.stderr)
+        return EXIT_ERROR
+    if args.staged:
+        paths = gate_module.staged_paths(cfg.root)
+    elif args.changed_files:
+        paths = list(args.changed_files)
+    else:
+        paths = gate_module.working_tree_paths(cfg.root)
+
+    decision = gate_module.decide(cfg, paths, override=args.story)
+
+    if args.as_json:
+        print(json.dumps(decision.as_dict(), indent=2))
+        return decision.exit_code
+
+    if decision.permitted:
+        print(f"gate: permitted - {decision.reason}")
+        return decision.exit_code
+
+    print(f"gate: refused - {decision.reason}", file=sys.stderr)
+    print(file=sys.stderr)
+    print("governed paths in this change:", file=sys.stderr)
+    for path in decision.governed[:20]:
+        print(f"  {path}", file=sys.stderr)
+    if len(decision.governed) > 20:
+        print(f"  ... and {len(decision.governed) - 20} more", file=sys.stderr)
+    print(file=sys.stderr)
+    if decision.story_id is None:
+        print("Set an active story with one of:", file=sys.stderr)
+        print(f"  export {gate_module.ENV_VAR}=STORY-123", file=sys.stderr)
+        print(f"  echo STORY-123 > .amigos/{gate_module.ACTIVE_FILE}", file=sys.stderr)
+        print("  git switch -c story/STORY-123-short-description", file=sys.stderr)
+    else:
+        print(f"Make the story ready, then retry:", file=sys.stderr)
+        print(f"  amigos check {decision.story_id}", file=sys.stderr)
+    return decision.exit_code
+
+
+def _hooks(args: argparse.Namespace) -> int:
+    root = (args.root or Path.cwd()).resolve()
+    if args.action == "install":
+        return hooks.install(root, force=args.force)
+    if args.action == "uninstall":
+        return hooks.uninstall(root)
+    return hooks.status(root)

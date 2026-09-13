@@ -6,15 +6,15 @@ Story covered: **STORY-007**.
 
 | Status | Task | Acceptance |
 |---|---|---|
-| [ ] | `src/amigos/gate.py`: path classification, story resolution, decision | Governed by default; resolution order honoured; ambiguity refuses |
-| [ ] | `gate` config section and defaults | Exempt set configurable; absent config still fails closed |
-| [ ] | `amigos gate` subcommand | `--staged`, `--changed-file`, `--story`, `--json`; exit 0/1/2 |
-| [ ] | `amigos hooks install` | Writes `.git/hooks/pre-commit`; refuses to clobber a foreign hook |
-| [ ] | `integrations/git/pre-commit` | Calls `amigos gate --staged` |
-| [ ] | `integrations/claude-code/gate_hook.py` | Reads PreToolUse JSON, emits a deny decision with the reason |
-| [ ] | Tests for every STORY-007 scenario | One test per scenario, named after it |
-| [ ] | Install both hooks in this repository | The project is subject to its own gate |
-| [ ] | Docs: component design, roadmap, README section 18 | Match the implementation |
+| [x] | `src/amigos/gate.py`: path classification, story resolution, decision | Governed by default; resolution order honoured; ambiguity refuses |
+| [x] | `gate` config section and defaults | Exempt set configurable; absent config still fails closed |
+| [x] | `amigos gate` subcommand | `--staged`, `--changed-file`, `--story`, `--json`; exit 0/1/2 |
+| [x] | `amigos hooks install` | Writes `.git/hooks/pre-commit`; refuses to clobber a foreign hook |
+| [x] | `integrations/git/pre-commit` | Calls `amigos gate --staged` |
+| [x] | `integrations/claude-code/gate_hook.py` | Reads PreToolUse JSON, emits a deny decision with the reason |
+| [x] | Tests for every STORY-007 scenario | One test per scenario, named after it |
+| [x] | Install both hooks in this repository | The project is subject to its own gate |
+| [x] | Docs: component design, roadmap, README section 18 | Match the implementation |
 
 ## Verification
 

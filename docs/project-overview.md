@@ -39,6 +39,7 @@ enforcement ships before agent orchestration. See [roadmaps.md](roadmaps.md).
 | `templates/` | The scaffolding `amigos create` writes. |
 | `tests/` | Unit tests plus a fixture corpus of deliberately broken stories. |
 | `docs/` | This documentation. |
+| `integrations/` | Host adapters over the gate: Claude Code, git. |
 | `.claude-plugin/` | Claude Code plugin manifest. |
 
 `skills/` and `agents/` arrive with `/amigos` in a later milestone; the plugin
@@ -55,7 +56,11 @@ this project's schemas use.
 
 ## Current state
 
-Milestone v0.1 is implemented: the contract format, the deterministic validator,
-the acceptance linter and story scaffolding. The project's own three stories are
-contracts under `.amigos/stories/` and are held to the same gate by
-`tests/test_dogfooding.py`.
+Milestones v0.1 and v0.2 are implemented: the contract format, the deterministic
+validator, the acceptance linter, story scaffolding, and the repository gate
+with its Claude Code and git adapters.
+
+The project is subject to its own gate. Changing a governed file here requires a
+ready story that the branch name, the `.amigos/ACTIVE` pointer or `AMIGOS_STORY`
+resolves. `tests/test_dogfooding.py` holds the repository's own stories to the
+same checks it imposes on anyone else.

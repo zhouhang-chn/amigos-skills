@@ -14,6 +14,18 @@ CONFIG_DIRNAME = ".amigos"
 CONFIG_FILENAME = "config.json"
 DEFAULT_STORIES_DIR = ".amigos/stories"
 
+# Exempt from the repository gate. This is exactly the work that makes a story
+# ready: gating the contract files would deadlock the protocol, since a story
+# could never become ready without editing a story. Everything else is governed,
+# including directories that do not exist yet.
+DEFAULT_GATE_EXEMPT = (
+    ".amigos/**",
+    "docs/**",
+    "*.md",
+    "LICENSE",
+    ".gitignore",
+)
+
 
 class ConfigError(Exception):
     """The repository configuration is unusable."""
@@ -28,6 +40,7 @@ class Config:
     vague_words: tuple[str, ...]
     min_primary: int
     min_counterexamples: int
+    gate_exempt: tuple[str, ...]
     source: Path | None = field(default=None)
 
     def story_dir(self, story_id: str) -> Path:
@@ -75,6 +88,7 @@ def load(root: Path | None = None, stories_dir: Path | None = None) -> Config:
 
     lint = data.get("lint") or {}
     dor = data.get("dor") or {}
+    gate = data.get("gate") or {}
 
     words = _default_vague_words()
     removed = {w.strip().lower() for w in lint.get("vague_words_remove", [])}
@@ -90,11 +104,15 @@ def load(root: Path | None = None, stories_dir: Path | None = None) -> Config:
     if not resolved_stories.is_absolute():
         resolved_stories = resolved_root / resolved_stories
 
+    exempt = gate.get("exempt")
+    gate_exempt = tuple(exempt) if isinstance(exempt, list) else DEFAULT_GATE_EXEMPT
+
     return Config(
         root=resolved_root,
         stories_dir=resolved_stories,
         vague_words=tuple(words),
         min_primary=int(dor.get("min_primary", 1)),
         min_counterexamples=int(dor.get("min_counterexamples", 2)),
+        gate_exempt=gate_exempt,
         source=source,
     )

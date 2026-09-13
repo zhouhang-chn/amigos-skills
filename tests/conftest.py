@@ -1,4 +1,5 @@
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -37,3 +38,33 @@ def scratch_repo(tmp_path: Path) -> Path:
     shutil.copytree(FIXTURE_STORIES, tmp_path / ".amigos" / "stories")
     shutil.copytree(REPO_ROOT / "templates", tmp_path / "templates")
     return tmp_path
+
+
+def _git(root, *args):
+    return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=True)
+
+
+@pytest.fixture
+def git_repo(scratch_repo: Path) -> Path:
+    """An initialised repository under git, on a branch naming no story."""
+    _git(scratch_repo, "init", "-q", "-b", "work")
+    _git(scratch_repo, "config", "user.email", "test@example.invalid")
+    _git(scratch_repo, "config", "user.name", "Test")
+    _git(scratch_repo, "add", "-A")
+    _git(scratch_repo, "commit", "-q", "-m", "baseline")
+    return scratch_repo
+
+
+@pytest.fixture
+def on_branch(git_repo: Path):
+    """Switch the scratch repository to a named branch."""
+    def switch(name: str) -> Path:
+        _git(git_repo, "switch", "-q", "-c", name)
+        return git_repo
+    return switch
+
+
+@pytest.fixture(autouse=True)
+def no_ambient_story(monkeypatch):
+    """The environment must never leak an active story into a test."""
+    monkeypatch.delenv("AMIGOS_STORY", raising=False)

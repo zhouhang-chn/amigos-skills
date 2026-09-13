@@ -11,7 +11,7 @@ import pytest
 
 from amigos import dor, jsonschema, story
 
-STORY_IDS = ("STORY-001", "STORY-002", "STORY-003")
+STORY_IDS = ("STORY-001", "STORY-002", "STORY-003", "STORY-007")
 
 
 @pytest.mark.parametrize("story_id", STORY_IDS)
@@ -63,3 +63,19 @@ def test_the_readme_vocabulary_is_the_default_vocabulary(repo_root, repo_config)
     lines = block.splitlines()[1:]  # drop the fence's info string
     published = [line.strip() for line in lines if line.strip()]
     assert list(repo_config.vague_words) == published
+
+
+def test_this_repository_governs_its_own_source(repo_config):
+    """The gate's exempt set must not quietly stop governing the code."""
+    from amigos import gate
+    for governed in ("src/amigos/dor.py", "scripts/check_dor.py", "tests/test_dor.py",
+                     "pyproject.toml", "integrations/claude-code/gate_hook.py"):
+        assert not gate.is_exempt(governed, repo_config.gate_exempt), governed
+
+
+def test_this_repository_exempts_the_work_that_makes_a_story_ready(repo_config):
+    """Gating the contract files would deadlock the protocol."""
+    from amigos import gate
+    for exempt in (".amigos/stories/STORY-007/intent.md", ".amigos/config.json",
+                   "docs/versions/v0.2-repository-gate/design.md", "README.md"):
+        assert gate.is_exempt(exempt, repo_config.gate_exempt), exempt
