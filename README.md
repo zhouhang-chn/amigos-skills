@@ -2,6 +2,8 @@
 
 Contract-first development skills for coding agents.
 
+![Amigos Skills: an idea or ticket passes through the Three Amigos gate (Product, Development, QA) to produce an acceptance contract, which must pass a Definition of Ready check before evals, design, implementation, and testing begin.](docs/amigos-skills.png)
+
 `amigos-skills` turns the **Three Amigos** practice—Product, Development, and QA alignment—into an executable pre-development gate for AI coding agents such as Claude Code and Codex.
 
 The core idea is simple:
