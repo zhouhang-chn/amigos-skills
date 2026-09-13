@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "stories_dir": ".amigos/stories",
+  "lint": {
+    "vague_words_extra": [],
+    "vague_words_remove": []
+  },
+  "dor": {
+    "min_primary": 1,
+    "min_counterexamples": 2
+  }
+}
