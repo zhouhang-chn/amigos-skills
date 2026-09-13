@@ -132,6 +132,40 @@ def _resolve_templates(config: Config, override: Path | None) -> Path:
     raise StoryError(f"templates directory not found; searched: {searched}")
 
 
+def set_state(directory: Path, declared: str, note: str | None = None) -> State:
+    """Record a lifecycle transition in ``state.json``.
+
+    Refuses ``ready`` and ``blocked`` here exactly as :func:`read_state` refuses
+    them, so the rule holds whichever end of the file something approaches from.
+    History is appended to, never replaced: a contract's lifecycle is evidence.
+    """
+    path = directory / "state.json"
+    if not path.is_file():
+        raise StoryError(f"{path}: missing")
+    if declared in ("ready", "blocked"):
+        raise StoryError(
+            f"{declared!r} is not declarable. Readiness is derived by the validator "
+            f"and written to dor.json; state.json may declare only "
+            f"{', '.join(DECLARABLE_STATES)}."
+        )
+    if declared not in DECLARABLE_STATES:
+        raise StoryError(
+            f"unknown state {declared!r}; expected one of {', '.join(DECLARABLE_STATES)}"
+        )
+
+    data = json.loads(path.read_text(encoding="utf-8"))
+    timestamp = now()
+    entry: dict = {"state": declared, "at": timestamp}
+    if note:
+        entry["note"] = note
+    history = data.get("history")
+    data["history"] = ([*history] if isinstance(history, list) else []) + [entry]
+    data["declared_state"] = declared
+    data["updated_at"] = timestamp
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    return read_state(directory)
+
+
 def create(config: Config, story_id: str, templates_dir: Path | None = None) -> Path:
     """Scaffold a story workspace from the templates.
 

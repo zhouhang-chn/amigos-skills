@@ -4,7 +4,7 @@
 |---|---|---|---|---|
 | v0.1 | Contract format, deterministic validator, acceptance lint, scaffolding | — | Readiness can be rejected without asking a model. | Complete |
 | v0.2 | Repository gate refusing source changes without a ready story | v0.1 | The project cannot casually bypass its own contract. | Complete |
-| v0.3 | `/amigos` MVP, one orchestrator preserving the three logical phases | v0.2 | Amigos Skills can create usable contracts for its own development. | Not started |
+| v0.3 | `/amigos` MVP, one orchestrator preserving the three logical phases | v0.2 | Amigos Skills can create usable contracts for its own development. | Complete |
 | v0.4 | Product, Development and QA as independent subagents | v0.3 | The three agents discover different classes of ambiguity, scope risk and failure mode. | Not started |
 | v0.5 | `/implement` | v0.4 | The project moves from a ready contract to verified implementation without redefining the requirement. | Not started |
 | v0.6 | Strong self-hosting enforcement, contract immutability | v0.5 | No privileged development path around the protocol. | Not started |

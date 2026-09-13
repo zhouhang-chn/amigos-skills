@@ -27,12 +27,19 @@ amigos check STORY-002       # one story's Definition of Ready
 amigos gate --staged         # may this commit touch what it touches?
 ```
 
+Contracts are generated rather than hand-authored from v0.3 on:
+
+```text
+/amigos STORY-123 "a description of what should change"
+```
+
 | Layer | State |
 |---|---|
 | Contract protocol under `.amigos/` | Built |
 | Deterministic validator and acceptance lint | Built |
 | Repository gate | Built |
-| `/amigos`, subagents, `/implement` | Not built |
+| `/amigos` | Built |
+| Subagents, `/implement` | Not built |
 
 Sections 1 to 37 below are the specification of intent; they describe the whole
 system, most of which is still ahead. [docs/roadmaps.md](docs/roadmaps.md)
@@ -489,23 +496,35 @@ Architecture:
 `/amigos` creates or updates the acceptance contract for a story.
 
 ```text
-/amigos STORY-123
+/amigos STORY-123 "a description of what should change"
 ```
 
-Responsibilities:
+Phases:
 
-1. Load the ticket and repository context.
-2. Create the story workspace.
-3. Invoke Product.
-4. Invoke Development.
-5. Invoke QA.
-6. Allow bounded cross-role challenge.
-7. Synthesize the contract.
-8. Run deterministic DoR validation.
-9. Stop if blockers remain.
-10. Surface conflicts and proposed acceptance scenarios.
+```text
+0  Set up      create or reopen; declare amigos_running; read the repository
+1  Product     user, problem, outcome, why now, in and out of scope
+2  Development feasibility, dependencies, invariants, components
+3  QA          primary path, counterexamples, judgeable assertions
+4  Challenge   each perspective attacks the others' output
+5  Interview   at most two rounds, only on what would become an assumption
+6  Synthesise  write the four input files
+7  Validate    amigos check, repair, re-check, at most three attempts
+8  Finish      return to draft; report ready or blocked
+```
 
-The discussion should be bounded. Two challenge rounds should normally be enough.
+`amigos_running` withholds readiness for the whole run, so a half-written
+contract can never read as ready to anything downstream.
+
+Both loops are bounded. The interview stops at two rounds and whatever remains
+becomes a blocking question; an agent required to reach zero blockers has an
+incentive to accept a weak answer. The repair loop stops at three attempts and
+reports what is left; an unbounded loop against a rule the model has not
+understood ends in the same place having spent more.
+
+The skill may never write `dor.json`, declare `ready` or `blocked`, invent an
+assumption to clear a blocker, or write a transcript into the story. The first
+two are refused by code rather than by the skill remembering them.
 
 The output is not the conversation.
 

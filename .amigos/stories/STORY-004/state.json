@@ -2,12 +2,22 @@
   "schema_version": 1,
   "story_id": "STORY-004",
   "declared_state": "draft",
-  "updated_at": "2026-09-13T01:54:40Z",
+  "updated_at": "2026-09-13T01:55:54Z",
   "history": [
     {
       "state": "draft",
       "at": "2026-09-13T01:54:40Z",
       "note": "story workspace created"
+    },
+    {
+      "state": "amigos_running",
+      "at": "2026-09-13T01:55:54Z",
+      "note": "drafting the contract"
+    },
+    {
+      "state": "draft",
+      "at": "2026-09-13T01:55:54Z",
+      "note": "contract complete"
     }
   ]
 }

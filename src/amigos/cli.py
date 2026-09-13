@@ -74,6 +74,15 @@ def build_parser() -> argparse.ArgumentParser:
     gate.add_argument("--json", action="store_true", dest="as_json")
     _add_common(gate)
 
+    state = subparsers.add_parser(
+        "state", help="record a lifecycle transition in state.json")
+    state.add_argument("story_id")
+    state.add_argument("--set", dest="declared", required=True,
+                       metavar="STATE",
+                       help=f"one of: {', '.join(story.DECLARABLE_STATES)}")
+    state.add_argument("--note", default=None, help="why the transition happened")
+    _add_common(state)
+
     hooks_cmd = subparsers.add_parser("hooks", help="install or inspect the git hook")
     hooks_cmd.add_argument("action", choices=["install", "uninstall", "status"])
     hooks_cmd.add_argument("--force", action="store_true",
@@ -101,6 +110,8 @@ def main(argv: list[str] | None = None) -> int:
             return _status(cfg, args)
         if args.command == "gate":
             return _gate(cfg, args)
+        if args.command == "state":
+            return _state(cfg, args)
     except config_module.ConfigError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_ERROR
@@ -269,3 +280,15 @@ def _hooks(args: argparse.Namespace) -> int:
     if args.action == "uninstall":
         return hooks.uninstall(root)
     return hooks.status(root)
+
+
+def _state(cfg: config_module.Config, args: argparse.Namespace) -> int:
+    directory = story.story_dir(cfg, args.story_id)
+    if not directory.is_dir():
+        print(f"error: {directory}: story not found", file=sys.stderr)
+        return EXIT_ERROR
+    before = story.read_state(directory).declared_state
+    after = story.set_state(directory, args.declared, note=args.note)
+    print(f"{args.story_id}: {before} -> {after.declared_state}")
+    print(f"  {len(after.history)} entries in history")
+    return EXIT_OK

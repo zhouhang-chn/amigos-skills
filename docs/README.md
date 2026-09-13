@@ -10,6 +10,7 @@
 | [component-design/contract-protocol.md](component-design/contract-protocol.md) | The `.amigos/` on-disk protocol. Platform-independent. |
 | [component-design/validator.md](component-design/validator.md) | The deterministic Definition of Ready: checks, rules, exit codes. |
 | [component-design/gate.md](component-design/gate.md) | The repository gate: what it governs, how it resolves a story, what it cannot do. |
+| [component-design/orchestration.md](component-design/orchestration.md) | The `/amigos` skill: phases, bounds, and what a skill may never do. |
 
 The root [README.md](../README.md) is the product thesis and the specification
 of intent. These docs record how the thesis is being built.
@@ -23,6 +24,7 @@ Execution docs live under [versions/](versions/), never directly under `docs/`.
 | [versions/v1.0-self-hosting/](versions/v1.0-self-hosting/) | The goal: Amigos Skills develops Amigos Skills. |
 | [versions/v0.1-deterministic-contract-core/](versions/v0.1-deterministic-contract-core/) | Milestone 1: the contract format and the deterministic validator. |
 | [versions/v0.2-repository-gate/](versions/v0.2-repository-gate/) | Milestone 2: enforcement, so the contract stops being advisory. |
+| [versions/v0.3-amigos-mvp/](versions/v0.3-amigos-mvp/) | Milestone 3: `/amigos`, so contracts are generated rather than hand-authored. |
 
 ## Two planning surfaces, one boundary
 

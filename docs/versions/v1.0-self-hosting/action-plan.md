@@ -6,7 +6,7 @@ Milestone-level tracking. Task-level plans live in each milestone folder.
 |---|---|---|
 | [x] | v0.1 contract format and deterministic validator | STORY-001, STORY-002, STORY-003 |
 | [x] | v0.2 repository gate | STORY-007 |
-| [ ] | v0.3 `/amigos` MVP | STORY-004 |
+| [x] | v0.3 `/amigos` MVP | STORY-004 |
 | [ ] | v0.4 three independent subagents | STORY-005 |
 | [ ] | v0.5 `/implement` | STORY-006 |
 | [ ] | v0.6 strong self-hosting enforcement | to be defined |

@@ -6,13 +6,13 @@ Story covered: **STORY-004**.
 
 | Status | Task | Acceptance |
 |---|---|---|
-| [ ] | `amigos state` subcommand | Records a transition; refuses `ready` and `blocked` |
-| [ ] | `skills/amigos/SKILL.md` | Eight phases, the four prohibitions, bounded interview and repair |
-| [ ] | Plugin manifest declares `skills/` | `plugin.json` points at the directory that now exists |
-| [ ] | `.claude/skills/amigos` symlink | This checkout discovers the same file the plugin ships |
-| [ ] | Tests for `amigos state` and the skill's stated discipline | One test per STORY-004 scenario that code can reach |
-| [ ] | Use the skill to author the next story's contract | A generated contract passes the validator |
-| [ ] | Docs: component design, roadmap, README sections 8, 9, 19 | Match the implementation |
+| [x] | `amigos state` subcommand | Records a transition; refuses `ready` and `blocked` |
+| [x] | `skills/amigos/SKILL.md` | Eight phases, the four prohibitions, bounded interview and repair |
+| [x] | Plugin manifest declares `skills/` | `plugin.json` points at the directory that now exists |
+| [x] | `.claude/skills/amigos` symlink | This checkout discovers the same file the plugin ships |
+| [x] | Tests for `amigos state` and the skill's stated discipline | One test per STORY-004 scenario that code can reach |
+| [x] | Use the skill to author the next story's contract | A generated contract passes the validator |
+| [x] | Docs: component design, roadmap, README sections 8, 9, 19 | Match the implementation |
 
 ## Verification
 

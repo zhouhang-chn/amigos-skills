@@ -11,7 +11,8 @@ import pytest
 
 from amigos import dor, jsonschema, story
 
-STORY_IDS = ("STORY-001", "STORY-002", "STORY-003", "STORY-007")
+STORY_IDS = ("STORY-001", "STORY-002", "STORY-003", "STORY-004",
+             "STORY-005", "STORY-007")
 
 
 @pytest.mark.parametrize("story_id", STORY_IDS)
@@ -79,3 +80,25 @@ def test_this_repository_exempts_the_work_that_makes_a_story_ready(repo_config):
     for exempt in (".amigos/stories/STORY-007/intent.md", ".amigos/config.json",
                    "docs/versions/v0.2-repository-gate/design.md", "README.md"):
         assert gate.is_exempt(exempt, repo_config.gate_exempt), exempt
+
+
+def test_a_generated_contract_passes_the_same_gate_as_a_hand_authored_one(repo_config):
+    """v0.3's success criterion, kept as a regression.
+
+    STORY-005's contract was produced by running the amigos skill, not by hand.
+    It is held to exactly the checks every hand-authored contract is held to.
+    """
+    from amigos import dor
+    result = dor.evaluate(repo_config, "STORY-005")
+    assert result.ready is True, [f.format() for f in result.failures]
+    assert result.scenarios["primary"] >= repo_config.min_primary
+    assert result.scenarios["counterexample"] >= repo_config.min_counterexamples
+
+
+def test_the_skill_run_left_a_lifecycle_trail(repo_config):
+    """A run declares amigos_running while it works and returns the story to draft."""
+    import json
+    path = repo_config.story_dir("STORY-005") / "state.json"
+    states = [entry["state"] for entry in json.loads(path.read_text())["history"]]
+    assert "amigos_running" in states
+    assert states[-1] == "draft"
