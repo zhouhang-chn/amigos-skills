@@ -1,0 +1,579 @@
+{
+  "schema_version": 1,
+  "story_id": "STORY-010",
+  "run_id": "2026-09-14T01-11-42Z",
+  "generated_at": "2026-09-14T01:11:42Z",
+  "generator": "amigos 0.1.0",
+  "findings_by_role": {
+    "product": 12,
+    "dev": 14,
+    "qa": 12
+  },
+  "total_findings": 38,
+  "distinct_findings": 28,
+  "shared": 7,
+  "unique": 21,
+  "unique_by_role": {
+    "product": 9,
+    "dev": 8,
+    "qa": 4
+  },
+  "split_added_nothing": false,
+  "keys": [
+    {
+      "target_section": "dependencies",
+      "risk_dimension": "dependency",
+      "roles": [
+        "dev",
+        "qa"
+      ],
+      "shared": true,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Dependencies",
+          "risk_dimension": "dependency",
+          "statement": "The mechanism's reach is bounded by four holes this story does not close, and its value is close to nominal for the agents this repository actually runs unless that is stated. The PreToolUse matcher is 'Edit|Write|NotebookEdit', and the v0.6 gap-analysis records that the session which kicked off this milestone wrote every file through sed, cat and heredocs without the hook firing once (gap 6). 'git commit --no-verify' skips the pre-commit adapter (gap 4). .claude/settings.json is editable under a ready story (gap 5). And a one-line hand edit of state.json to 'contract_change' defeats the readiness input outright (gap 8) - state.json is under .amigos/** and is not a contract file, so nothing refuses that write."
+        },
+        {
+          "role": "qa",
+          "target_file": "constraints.md",
+          "target_section": "Dependencies",
+          "risk_dimension": "dependency",
+          "statement": "The unlock condition is read out of state.json, and nothing verifies that file. Gap 8 (a hand-edited state.json with no supporting history entry) is sequenced as task 5 of this same milestone, so until it lands, writing contract_change into state.json by hand lifts the refusal silently. Worse, making state.json unparseable raises StructuralError, which is neither ready nor not-ready; if that reads as \"not ready\" the refusal disappears and the corruption leaves no trace in the history the command would have written."
+        }
+      ]
+    },
+    {
+      "target_section": "desired outcome",
+      "risk_dimension": "ambiguity",
+      "roles": [
+        "product",
+        "qa"
+      ],
+      "shared": true,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "Desired Outcome",
+          "risk_dimension": "ambiguity",
+          "statement": "Nothing says which snapshot of readiness the refusal is keyed on: an edit that removes a counterexample leaves the story not ready, so a rule reading readiness from the post-edit tree would permit the most damaging edits and refuse only harmless ones."
+        },
+        {
+          "role": "qa",
+          "target_file": "intent.md",
+          "target_section": "Desired Outcome",
+          "risk_dimension": "ambiguity",
+          "statement": "Two declarable states withhold readiness: contract_change and amigos_running. If the refusal lifts whenever the story is not ready, then declaring amigos_running unlocks the contract exactly as cheaply as contract_change, and /amigos Phase 0 declares amigos_running on a ready story as a matter of course. The request names only contract_change as the withholding declaration, and does not say whether amigos_running is an equally valid unlock or a bypass."
+        }
+      ]
+    },
+    {
+      "target_section": "in scope",
+      "risk_dimension": "scope",
+      "roles": [
+        "product",
+        "dev",
+        "qa"
+      ],
+      "shared": true,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "In Scope",
+          "risk_dimension": "scope",
+          "statement": "The request does not settle whether the refusal protects every ready story's contract or only the active story's, and the gate today resolves exactly one active story, so an edit to a different ready story's contract would otherwise stay permitted."
+        },
+        {
+          "role": "dev",
+          "target_file": "intent.md",
+          "target_section": "In Scope",
+          "risk_dimension": "scope",
+          "statement": "Two scope questions are left open by the request. Which files: README section 32 phase 6 names 'modifying acceptance.feature during implementation', while the gap-analysis says 'an edit to the contract of a story that is already ready' - one file or all four of story.HASHED_FILES. And whose story: only the resolved active story's contract (which is what 'during implementation' means literally) or any ready story's contract (which also catches editing STORY-007's criteria while working on STORY-010). The two readings produce different mechanisms and different scenarios."
+        },
+        {
+          "role": "qa",
+          "target_file": "intent.md",
+          "target_section": "In Scope",
+          "risk_dimension": "scope",
+          "statement": "Which files the refusal covers is unsettled. README phase 6 names acceptance.feature alone, amigos verify treats four files as the contract, and the story directory also holds state.json and dor.json. Freezing dor.json would refuse every closeout commit, because amigos check rewrites it on every run (gap 10) and /implement Phase 0 runs it; freezing state.json would leave no way to declare contract_change and the story could never be reopened."
+        }
+      ]
+    },
+    {
+      "target_section": "invariants",
+      "risk_dimension": "invariant",
+      "roles": [
+        "dev",
+        "qa"
+      ],
+      "shared": true,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Invariants",
+          "risk_dimension": "invariant",
+          "statement": "state.json and dor.json must stay writable while a story is ready, or ready becomes terminal and the protocol has no exit. 'amigos state <id> --set contract_change' is the only legitimate way out of a ready contract and it writes state.json inside the story directory; the validator is dor.json's only writer and amigos check rewrites it on every run. story.HASHED_FILES is the four input files and excludes both - that exclusion is load-bearing and is currently written down only in STORY-009's constraints.md, not in any rule the code enforces."
+        },
+        {
+          "role": "qa",
+          "target_file": "constraints.md",
+          "target_section": "Invariants",
+          "risk_dimension": "invariant",
+          "statement": "Nothing written down requires the protocol to stay non-deadlocking: from any ready contract there must remain a permitted sequence of steps that reaches a changed one. The contract change ceremony is deferred to phase 8, so the only route the request leaves is amigos state --set contract_change, and that route depends on writes to state.json staying permitted while the story is ready. If the frozen set is drawn as \"the story directory\", the invariant fails and every ready story becomes permanently unamendable."
+        }
+      ]
+    },
+    {
+      "target_section": "out of scope",
+      "risk_dimension": "scope",
+      "roles": [
+        "product",
+        "dev",
+        "qa"
+      ],
+      "shared": true,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "Out of Scope",
+          "risk_dimension": "scope",
+          "statement": "The request does not say whether .amigos/config.json and .amigos/runs/** are touched, and both are covered by the same .amigos/** exemption this story reopens, one of which can switch the new rule off and the other of which /implement writes while the story is ready."
+        },
+        {
+          "role": "dev",
+          "target_file": "intent.md",
+          "target_section": "Out of Scope",
+          "risk_dimension": "scope",
+          "statement": "Whether the refusal is configurable is unstated and cannot be left to the implementer. gate.exempt is already a config key, so a 'protect ready contracts' toggle would be the natural shape - and README section 31 forbids this project from using an escape hatch a downstream project would not use, which makes an off switch this repository must never flip a strange thing to ship. If it is not configurable, every downstream repository inherits it unconditionally at whatever stories_dir it configures, which is also a decision the story should make explicitly."
+        },
+        {
+          "role": "qa",
+          "target_file": "intent.md",
+          "target_section": "Out of Scope",
+          "risk_dimension": "scope",
+          "statement": "Deletion and rename are not settled as \"edits\". gate.staged_paths() collects with --diff-filter=ACMRT, which omits deletions, so a staged git rm of a ready story's acceptance.feature currently reaches no decision at all, and rm through Bash reaches no PreToolUse hook either. Whether removing the acceptance criteria counts as the act this story refuses, or is left to gap 6, is undecided."
+        },
+        {
+          "role": "qa",
+          "target_file": "intent.md",
+          "target_section": "Out of Scope",
+          "risk_dimension": "scope",
+          "statement": ".amigos/config.json carries the gate's exempt list and stories_dir, and it is itself exempt from the gate. Under a ready story an agent may edit it \u2014 repointing stories_dir, or widening exempt \u2014 and thereby switch off the refusal this story adds. Gap 5 covers the equivalent hole in .claude/settings.json and is explicitly excluded from this story; .amigos/config.json is named by neither, so the protection may ship with an unguarded off switch."
+        }
+      ]
+    },
+    {
+      "target_section": "relevant components",
+      "risk_dimension": "feasibility",
+      "roles": [
+        "dev",
+        "qa"
+      ],
+      "shared": true,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Relevant Components",
+          "risk_dimension": "feasibility",
+          "statement": "The rule takes effect inside the session that writes it. integrations/claude-code/gate_hook.py imports src/amigos/gate.py fresh on every tool call, so a too-broad rule can lock the implementing session out of the files it needs to fix it, and the hook wraps gate.decide() in no try/except at all - a new exception path there changes what the hook does on error rather than producing a deny. The blast radius has to be bounded by construction: nothing outside config.stories_dir can be refused by this rule."
+        },
+        {
+          "role": "qa",
+          "target_file": "constraints.md",
+          "target_section": "Relevant Components",
+          "risk_dimension": "feasibility",
+          "statement": "Mapping a changed path back to a story id assumes the path lies under config.stories_dir, but stories_dir is configurable and --stories-dir can point at a corpus outside the git work tree entirely (verify.work_tree_root exists because of this). The PreToolUse adapter reduces file_path relative to config.root, not to the stories directory, so the mapping has to be derived from configuration rather than from the literal prefix .amigos/stories/."
+        }
+      ]
+    },
+    {
+      "target_section": "technical constraints",
+      "risk_dimension": "compatibility",
+      "roles": [
+        "dev",
+        "qa"
+      ],
+      "shared": true,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Technical Constraints",
+          "risk_dimension": "compatibility",
+          "statement": "The refusal's output has no place to land in the existing surfaces. Decision carries one story_id and one state, and a refusal about a contract path may concern a story other than the resolved active one. cli._gate() ends every refusal by printing the governed list and then either 'Set an active story with one of...' (when story_id is None) or 'Make the story ready, then retry: amigos check <id>' - the first is what a contract-only change set would print, since governed would be empty and no story resolvable, and the second is precisely the wrong instruction for this refusal. tests/test_gate.py asserts on 'AMIGOS_STORY' appearing in the refusal text and on the --json keys permitted/governed/state."
+        },
+        {
+          "role": "qa",
+          "target_file": "constraints.md",
+          "target_section": "Technical Constraints",
+          "risk_dimension": "compatibility",
+          "statement": "tests/test_dogfooding.py::test_this_repository_exempts_the_work_that_makes_a_story_ready asserts that .amigos/stories/STORY-007/intent.md is exempt, and tests/test_gate.py asserts decision.governed == [] for an all-exempt change and payload[\"governed\"] == [path] in --json. Closing this gap by removing .amigos/** from gate.exempt, or by reporting contract files under \"governed\", changes an asserted result and the JSON shape both installed adapters consume. The request does not say whether the new refusal is a second rule layered on the exemption or a change to it."
+        }
+      ]
+    },
+    {
+      "target_section": "dependencies",
+      "risk_dimension": "feasibility",
+      "roles": [
+        "dev"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Dependencies",
+          "risk_dimension": "feasibility",
+          "statement": "The only legitimate escape this story can offer routes straight through an unfixed gap. Declaring contract_change withholds readiness immediately, and the gate then refuses every governed write for that story - including committing partial implementation already in the tree. That is gap 7 of the v0.6 gap-analysis ('a mechanism that depends on doing things in the right order is the thing this milestone is replacing'), it is sequenced outside this story, and the phase-8 reapproval ceremony that would make the escape comfortable is a declared v0.6 non-goal. Shipping the refusal makes that gap load-bearing rather than merely known."
+        }
+      ]
+    },
+    {
+      "target_section": "desired outcome",
+      "risk_dimension": "scope",
+      "roles": [
+        "product"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "Desired Outcome",
+          "risk_dimension": "scope",
+          "statement": "The request does not settle whether the refusal must hold at commit time as well as at edit time; STORY-009's open-questions.md records that these are different rules and that a commit-time refusal scoped to the story directory would refuse this project's own closeout commits."
+        }
+      ]
+    },
+    {
+      "target_section": "in scope",
+      "risk_dimension": "ambiguity",
+      "roles": [
+        "product"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "In Scope",
+          "risk_dimension": "ambiguity",
+          "statement": "\"A contract edit\" does not say which files count: the four hashed inputs, or also state.json and dor.json, which have to stay writable while a story is ready because amigos check and amigos state write them on the ordinary path."
+        }
+      ]
+    },
+    {
+      "target_section": "in scope",
+      "risk_dimension": "coverage",
+      "roles": [
+        "product"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "In Scope",
+          "risk_dimension": "coverage",
+          "statement": "Deleting or renaming a ready story's contract file is a contract edit with no stated behaviour, and the pre-commit adapter collects staged paths with --diff-filter=ACMRT, which excludes deletions."
+        }
+      ]
+    },
+    {
+      "target_section": "in scope",
+      "risk_dimension": "dependency",
+      "roles": [
+        "product"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "In Scope",
+          "risk_dimension": "dependency",
+          "statement": "The request assumes amigos state --set contract_change is the sanctioned way to make a legitimate edit, but does not say the refusal must name that route, and the milestone's non-goals place the contract change workflow in phase 8."
+        }
+      ]
+    },
+    {
+      "target_section": "in scope",
+      "risk_dimension": "invariant",
+      "roles": [
+        "product"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "In Scope",
+          "risk_dimension": "invariant",
+          "statement": "The request does not say that scaffolding a brand-new story must stay permitted while some other story is ready, and amigos create writes into .amigos/stories/ exactly as a forbidden contract edit would."
+        }
+      ]
+    },
+    {
+      "target_section": "invariants",
+      "risk_dimension": "ambiguity",
+      "roles": [
+        "qa"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "qa",
+          "target_file": "constraints.md",
+          "target_section": "Invariants",
+          "risk_dimension": "ambiguity",
+          "statement": "\"While a story is ready\" names two different inputs depending on the adapter. The PreToolUse hook asks before the change lands, so the tree still holds the pre-edit contract; the pre-commit hook asks after it lands, so readiness recomputed from the tree describes the edited contract. An edit that strips a counterexample makes the story not-ready, and a rule reading \"refuse while ready\" from the post-edit tree would permit exactly the edit it exists to refuse. Nothing in the request says which content readiness is derived from."
+        }
+      ]
+    },
+    {
+      "target_section": "invariants",
+      "risk_dimension": "feasibility",
+      "roles": [
+        "dev"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Invariants",
+          "risk_dimension": "feasibility",
+          "statement": "A commit-time refusal of the form 'a contract file of a ready story is in the change set' deadlocks the repository's own contract commits. /amigos Phase 7 runs 'amigos state --set draft' and then 'amigos check', at which point the story computes ready; the commit that lands that contract then stages four contract files of a now-ready story and 'amigos gate --staged' refuses it. The same shape recurs after every legitimate contract_change, and STORY-009 additionally requires the contract to be committed before implementation starts or no baseline can be derived. docs/versions/v0.6-strong-enforcement/design.md records this as known: 'a commit-time refusal scoped to the story directory would refuse this project's own closeout commits'. Whatever rule lands must leave the repository able to commit a contract it has just made ready."
+        }
+      ]
+    },
+    {
+      "target_section": "out of scope",
+      "risk_dimension": "compatibility",
+      "roles": [
+        "product"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "Out of Scope",
+          "risk_dimension": "compatibility",
+          "statement": "Every story already in this repository is ready, so once the refusal lands an ordinary maintenance edit to any existing contract, including regenerating a dor.json that amigos check rewrites on every run, is refused; the request does not say whether that cost is intended."
+        }
+      ]
+    },
+    {
+      "target_section": "relevant components",
+      "risk_dimension": "compatibility",
+      "roles": [
+        "dev"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Relevant Components",
+          "risk_dimension": "compatibility",
+          "statement": "gate.classify() must keep its current path-only, time-independent semantics. verify._governed_in() calls it over historical commits to derive STORY-009's baseline (src/amigos/verify.py:148-165), so a classification that consulted present-day story readiness would judge yesterday's commits by today's state and move the baseline STORY-009 was built to fix. The refusal therefore cannot be expressed by making a ready story's contract files 'governed'; it has to be a second question asked alongside classification, and the constraint that survives is that readiness must not acquire a second implementation."
+        }
+      ]
+    },
+    {
+      "target_section": "scenario: an edit to a ready story's acceptance criteria is refused",
+      "risk_dimension": "testability",
+      "roles": [
+        "qa"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "qa",
+          "target_file": "acceptance.feature",
+          "target_section": "Scenario: An edit to a ready story's acceptance criteria is refused",
+          "risk_dimension": "testability",
+          "statement": "The request says the gate refuses but never says what the caller sees. cli._gate prints \"Make the story ready, then retry: amigos check <id>\" for every refusal with a resolved story; under the new rule that guidance is backwards, since the change is refused because the story IS ready. Without a stated observable difference between \"refused, not ready\" and \"refused, contract frozen\", no reviewer can decide whether a given refusal is the one this story asked for."
+        }
+      ]
+    },
+    {
+      "target_section": "scenario: the commit that first records a ready contract is permitted",
+      "risk_dimension": "coverage",
+      "roles": [
+        "qa"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "qa",
+          "target_file": "acceptance.feature",
+          "target_section": "Scenario: The commit that first records a ready contract is permitted",
+          "risk_dimension": "coverage",
+          "statement": "Nothing in the request says the commit that records a newly ready contract must still be permitted. A commit-time rule keyed on \"this story is ready\" refuses the very commit that puts the ready contract into history, and design.md already predicted it: \"a commit-time refusal scoped to the story directory would refuse this project's own closeout commits\". No stated outcome distinguishes the first commit of a contract from a later edit of one."
+        }
+      ]
+    },
+    {
+      "target_section": "scenario: the refusal follows the story the path names, not the active one",
+      "risk_dimension": "coverage",
+      "roles": [
+        "qa"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "qa",
+          "target_file": "acceptance.feature",
+          "target_section": "Scenario: The refusal follows the story the path names, not the active one",
+          "risk_dimension": "coverage",
+          "statement": "The gate resolves exactly one active story from AMIGOS_STORY, .amigos/ACTIVE or the branch name, but a contract path names its own story. The two disagree whenever an agent working on one story touches another story's contract, which is the ordinary shape of this repository's own history. Nothing in the request says which story's readiness decides, and no failure mode is described for the disagreement."
+        }
+      ]
+    },
+    {
+      "target_section": "scenarios",
+      "risk_dimension": "coverage",
+      "roles": [
+        "dev"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "acceptance.feature",
+          "target_section": "Scenarios",
+          "risk_dimension": "coverage",
+          "statement": "Failure modes with no scenario yet, each of which occurs in this repository as it stands: the first commit of a brand-new contract (an addition, not a modification); a re-commit after a legitimate contract_change; a contract path for a story id that does not exist - tests/test_gate.py::test_a_change_touching_only_exempt_paths_needs_no_story passes '.amigos/stories/X/intent.md' for a story that is not in the corpus and asserts permitted, governed == [] and story_id None; a deletion or rename of a contract file, which gate.staged_paths()'s --diff-filter=ACMRT never reports; and a contract file that is itself under a governed path, which tests/fixtures/stories/READY-001/acceptance.feature is whenever --stories-dir points at the fixture corpus."
+        }
+      ]
+    },
+    {
+      "target_section": "scenarios",
+      "risk_dimension": "testability",
+      "roles": [
+        "dev"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "acceptance.feature",
+          "target_section": "Scenarios",
+          "risk_dimension": "testability",
+          "statement": "A scenario worded as 'the edit is denied in the session' cannot be judged by this repository's suite. integrations/claude-code/gate_hook.py has no test anywhere - tests/test_dogfooding.py names it only to assert that it is a governed path - so the deny payload, the message text and the hook's behaviour on error are exercised by hand alone. Either the scenarios name 'amigos gate --changed-file ...' as the observable, or building a harness for the PreToolUse adapter is work this story owns rather than assumes."
+        }
+      ]
+    },
+    {
+      "target_section": "success",
+      "risk_dimension": "invariant",
+      "roles": [
+        "product"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "Success",
+          "risk_dimension": "invariant",
+          "statement": "The commit that first publishes a contract carries the contract files at a moment when the story already computes ready, so an unqualified refusal would make a freshly authored contract uncommittable and deadlock the protocol the exemption exists to keep open."
+        }
+      ]
+    },
+    {
+      "target_section": "success",
+      "risk_dimension": "testability",
+      "roles": [
+        "product"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "Success",
+          "risk_dimension": "testability",
+          "statement": "Nothing states how a reviewer distinguishes a refusal for a contract edit from the gate's existing refusal for an unready story, since both land on exit code 1 and the only difference available today is the wording of the reason."
+        }
+      ]
+    },
+    {
+      "target_section": "technical constraints",
+      "risk_dimension": "ambiguity",
+      "roles": [
+        "dev"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Technical Constraints",
+          "risk_dimension": "ambiguity",
+          "statement": "\"The gate refuses a contract edit while a story is ready\" does not say whether the refusal happens at edit time, at commit time, or both, and they are different rules with different data. The PreToolUse adapter sees one file_path before the write and can refuse the act; the pre-commit adapter sees a staged set after the fact (gate.staged_paths, --diff-filter=ACMRT) and can only refuse a whole commit. STORY-009's open-questions.md already records this as the reason refusal needed its own story: 'edit-time and commit-time refusal are different rules'. Two implementers would build two different mechanisms from the request as written, and the pair is also the natural split line if this turns out to be more than one change."
+        }
+      ]
+    },
+    {
+      "target_section": "technical constraints",
+      "risk_dimension": "feasibility",
+      "roles": [
+        "dev"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Technical Constraints",
+          "risk_dimension": "feasibility",
+          "statement": "gate.decide() answers exactly one question - is the single resolved active story ready - and returns one verdict for the whole change set (src/amigos/gate.py:187). A rule about a contract path is a question about the story that owns that path, which may be a different story, or a story id that does not exist. That needs per-path story resolution inside the decision, and the mapping has no defined origin today: integrations/claude-code/gate_hook.py passes a path relative to cfg.root, gate.staged_paths() returns paths relative to the git work-tree root which need not be cfg.root, and --changed-file passes whatever the caller typed. config.stories_dir is absolute and --stories-dir can point outside the work tree entirely."
+        }
+      ]
+    },
+    {
+      "target_section": "technical constraints",
+      "risk_dimension": "invariant",
+      "roles": [
+        "dev"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Technical Constraints",
+          "risk_dimension": "invariant",
+          "statement": "This rule has to fail OPEN, which is the opposite of the gate's stated default ('fail closed: a path is governed unless it matches an exempt pattern') and so has to be written down rather than inferred. A path may be refused only when the story that owns it demonstrably evaluates ready. A story whose acceptance.feature no longer parses, or whose state.json is malformed, raises StructuralError from dor.evaluate() and is not ready - and it must stay editable, or a broken contract can never be repaired. tests/fixtures/stories/BADGHERKIN-001, MISSING-001 and SELFPROMO-001 are exactly those shapes and are already in the corpus."
+        }
+      ]
+    },
+    {
+      "target_section": "user",
+      "risk_dimension": "ambiguity",
+      "roles": [
+        "product"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "User",
+          "risk_dimension": "ambiguity",
+          "statement": "The phase 6 bullet says \"during implementation\", but the gate cannot tell an implementing agent from a human maintainer, so the request leaves open whether the refusal is meant to bind everyone working in a checkout with the hooks installed."
+        }
+      ]
+    }
+  ]
+}

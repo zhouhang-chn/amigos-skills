@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "story_id": "STORY-010",
+  "role": "product",
+  "findings": [
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "ambiguity",
+      "statement": "\"A contract edit\" does not say which files count: the four hashed inputs, or also state.json and dor.json, which have to stay writable while a story is ready because amigos check and amigos state write them on the ordinary path."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "scope",
+      "statement": "The request does not settle whether the refusal protects every ready story's contract or only the active story's, and the gate today resolves exactly one active story, so an edit to a different ready story's contract would otherwise stay permitted."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Desired Outcome",
+      "risk_dimension": "ambiguity",
+      "statement": "Nothing says which snapshot of readiness the refusal is keyed on: an edit that removes a counterexample leaves the story not ready, so a rule reading readiness from the post-edit tree would permit the most damaging edits and refuse only harmless ones."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Desired Outcome",
+      "risk_dimension": "scope",
+      "statement": "The request does not settle whether the refusal must hold at commit time as well as at edit time; STORY-009's open-questions.md records that these are different rules and that a commit-time refusal scoped to the story directory would refuse this project's own closeout commits."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Success",
+      "risk_dimension": "invariant",
+      "statement": "The commit that first publishes a contract carries the contract files at a moment when the story already computes ready, so an unqualified refusal would make a freshly authored contract uncommittable and deadlock the protocol the exemption exists to keep open."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "dependency",
+      "statement": "The request assumes amigos state --set contract_change is the sanctioned way to make a legitimate edit, but does not say the refusal must name that route, and the milestone's non-goals place the contract change workflow in phase 8."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "coverage",
+      "statement": "Deleting or renaming a ready story's contract file is a contract edit with no stated behaviour, and the pre-commit adapter collects staged paths with --diff-filter=ACMRT, which excludes deletions."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Success",
+      "risk_dimension": "testability",
+      "statement": "Nothing states how a reviewer distinguishes a refusal for a contract edit from the gate's existing refusal for an unready story, since both land on exit code 1 and the only difference available today is the wording of the reason."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Out of Scope",
+      "risk_dimension": "scope",
+      "statement": "The request does not say whether .amigos/config.json and .amigos/runs/** are touched, and both are covered by the same .amigos/** exemption this story reopens, one of which can switch the new rule off and the other of which /implement writes while the story is ready."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Out of Scope",
+      "risk_dimension": "compatibility",
+      "statement": "Every story already in this repository is ready, so once the refusal lands an ordinary maintenance edit to any existing contract, including regenerating a dor.json that amigos check rewrites on every run, is refused; the request does not say whether that cost is intended."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "User",
+      "risk_dimension": "ambiguity",
+      "statement": "The phase 6 bullet says \"during implementation\", but the gate cannot tell an implementing agent from a human maintainer, so the request leaves open whether the refusal is meant to bind everyone working in a checkout with the hooks installed."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "invariant",
+      "statement": "The request does not say that scaffolding a brand-new story must stay permitted while some other story is ready, and amigos create writes into .amigos/stories/ exactly as a forbidden contract edit would."
+    }
+  ]
+}
