@@ -1,0 +1,595 @@
+{
+  "schema_version": 1,
+  "story_id": "STORY-011",
+  "run_id": "2026-09-14T09-12-26Z",
+  "generated_at": "2026-09-14T09:12:26Z",
+  "generator": "amigos 0.1.0",
+  "findings_by_role": {
+    "product": 16,
+    "dev": 16,
+    "qa": 15
+  },
+  "total_findings": 47,
+  "distinct_findings": 23,
+  "shared": 8,
+  "unique": 15,
+  "unique_by_role": {
+    "product": 3,
+    "dev": 6,
+    "qa": 6
+  },
+  "split_added_nothing": false,
+  "keys": [
+    {
+      "target_section": "dependencies",
+      "risk_dimension": "dependency",
+      "roles": [
+        "product",
+        "dev",
+        "qa"
+      ],
+      "shared": true,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "constraints.md",
+          "target_section": "Dependencies",
+          "risk_dimension": "dependency",
+          "statement": "Any check of state.json against git history assumes the file is committed and reachable from HEAD, which is false for a story whose first commit has not happened, for a freshly adopted repository, and after a rebase."
+        },
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Dependencies",
+          "risk_dimension": "dependency",
+          "statement": "The only evidence that state.json's history was appended to rather than rewritten is git, and it is partial evidence. `git show HEAD:<path>` needs the file tracked and committed; a story mid-drafting has uncommitted transitions by design, so 'differs from HEAD' cannot be the signal the way it is for the four contract files. The check is unanswerable with no git, no work tree, or no committed state.json, and a rebase, `git commit --no-verify` or an amend rewrites the evidence. Enforcement outside the session is milestone task 3 and is explicitly not this story, so whatever lands here is in-session only."
+        },
+        {
+          "role": "qa",
+          "target_file": "constraints.md",
+          "target_section": "## Dependencies",
+          "risk_dimension": "dependency",
+          "statement": "An append-only claim needs a baseline, and state.json is deliberately outside the two that exist: it is not in story.HASHED_FILES, so verify.baseline_revision() does not cover it, and dor.json.contract_hash does not hash it. Comparing against HEAD alone reopens exactly the laundering hole STORY-009 closed - an ordinary `git commit` makes the truncated history the baseline. The request does not say what the history is compared against."
+        }
+      ]
+    },
+    {
+      "target_section": "desired outcome",
+      "risk_dimension": "ambiguity",
+      "roles": [
+        "product",
+        "dev"
+      ],
+      "shared": true,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "Desired Outcome",
+          "risk_dimension": "ambiguity",
+          "statement": "The request says \"detects\" without saying whether detection refuses the action, reports it to a caller, or changes derived readiness, and those three produce different outcomes for the person the mechanism is meant to protect."
+        },
+        {
+          "role": "dev",
+          "target_file": "intent.md",
+          "target_section": "Desired Outcome",
+          "risk_dimension": "ambiguity",
+          "statement": "'Working against blocked stories' has no settled referent. `dor.Result.state` distinguishes `ready`, `blocked` (a check failed) and the two withholding states, and `gate.decide()` already refuses a governed change under all three non-ready values with a reason naming which. So either the bullet is asking for something narrower than the gate already does \u2014 a distinct treatment of `blocked` specifically \u2014 or for something wider, and the two readings imply different mechanisms. Two careful readers will not agree on which was meant."
+        }
+      ]
+    },
+    {
+      "target_section": "desired outcome",
+      "risk_dimension": "testability",
+      "roles": [
+        "product",
+        "qa"
+      ],
+      "shared": true,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "Desired Outcome",
+          "risk_dimension": "testability",
+          "statement": "\"Working against a blocked story\" is not observable from a set of changed paths: the gate knows only the resolved active story, so a change made for a blocked story while a different ready story resolves is indistinguishable from legitimate work."
+        },
+        {
+          "role": "qa",
+          "target_file": "intent.md",
+          "target_section": "## Desired Outcome",
+          "risk_dimension": "testability",
+          "statement": "No command is named. The ticket says 'which command reports it' is open, so every Then about detection is undecidable until one command, one output and one exit code are fixed. Today four commands touch state.json indirectly (check, status, verify, gate) and each has a different exit vocabulary; two reviewers running two of them would reach opposite verdicts on the same tampered file."
+        }
+      ]
+    },
+    {
+      "target_section": "in scope",
+      "risk_dimension": "scope",
+      "roles": [
+        "product",
+        "dev",
+        "qa"
+      ],
+      "shared": true,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "In Scope",
+          "risk_dimension": "scope",
+          "statement": "The request bundles two of README phase 6's bullets (working against blocked stories, silently changing contract state) into one story without settling whether both must ship for milestone task 5 to be complete."
+        },
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "In Scope",
+          "risk_dimension": "scope",
+          "statement": "Running `amigos state <id> --set contract_change` leaves a history entry and is therefore not silent, so the request does not settle whether reopening a frozen contract should become harder or only unrecorded state change should become visible."
+        },
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "In Scope",
+          "risk_dimension": "scope",
+          "statement": "read_state() validates only declared_state and the type of history, never schemas/state.schema.json, so whether story_id, schema_version and unknown keys are part of \"hand-edited\" is undecided even though tests/test_dogfooding.py already asserts the schema for this repository's own stories."
+        },
+        {
+          "role": "dev",
+          "target_file": "intent.md",
+          "target_section": "In Scope",
+          "risk_dimension": "scope",
+          "statement": "The ticket bundles two mechanisms that share only a README bullet list: state.json integrity (gap 8) and a mechanism for 'working against blocked stories' (phase 6 bullet 2, which the gap analysis never filed as a gap). They touch different modules, have separate decision surfaces, and neither depends on the other. Contracted together, the likely outcome is that state.json integrity lands and the blocked-story half is satisfied by a sentence. If they stay in one story, intent.md should say which one the story fails without."
+        },
+        {
+          "role": "qa",
+          "target_file": "intent.md",
+          "target_section": "## In Scope",
+          "risk_dimension": "scope",
+          "statement": "The consequence of detection is undecided, and the two candidates have opposite effects. If detection only reports, gap 8 stays an unlock: gate._ready_before_change() fails open, so a hand-written contract_change still lifts a ready story's contract freeze and the report is advisory. If detection also refuses, the gate must consult the new check, which changes STORY-010's shipped behaviour. The request names neither."
+        },
+        {
+          "role": "qa",
+          "target_file": "intent.md",
+          "target_section": "## In Scope",
+          "risk_dimension": "scope",
+          "statement": "README phase 6's second bullet, 'working against blocked stories', has no described mechanism. gate.decide() already refuses a governed change when the resolved story derives blocked, and names the failed checks. The request asks to 'give the bullet a mechanism' without saying what observable is missing today, so there is no way to tell whether this story adds behaviour or only pins existing behaviour as a regression."
+        }
+      ]
+    },
+    {
+      "target_section": "invariants",
+      "risk_dimension": "compatibility",
+      "roles": [
+        "product",
+        "dev",
+        "qa"
+      ],
+      "shared": true,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "constraints.md",
+          "target_section": "Invariants",
+          "risk_dimension": "compatibility",
+          "statement": "STORY-010's contract freeze fails open on any story it cannot evaluate, so treating a tampered state.json as a structural error would turn tampering into a better unlock for contract edits than it is today."
+        },
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Invariants",
+          "risk_dimension": "compatibility",
+          "statement": "STORY-010 is a committed, ready, frozen contract whose constraints.md states 'a story that cannot be evaluated stays editable' and whose acceptance.feature has the scenario 'A story whose contract cannot be evaluated stays editable'. If STORY-011 amends the fail-open rule so a tampered state.json refuses rather than releases, it contradicts a shipped contract and needs `amigos state STORY-010 --set contract_change` plus a re-contracting run. The ticket does not say whether that is in scope."
+        },
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Invariants",
+          "risk_dimension": "compatibility",
+          "statement": "`state.json` must stay out of `story.HASHED_FILES`. Putting it there would (a) make it a contract file to `gate.contract_file()`, so STORY-010's freeze would refuse the commit that records a `contract_change` declaration and deadlock the documented reopen route; (b) change `story.hash_inputs()` and so every committed `dor.json.contract_hash`, which `tests/test_dogfooding.py` asserts twice; (c) add a fifth path to `verify._tracked_paths()`, moving the STORY-009 baseline for every story. Whatever holds state.json to account must do it outside the contract hash."
+        },
+        {
+          "role": "qa",
+          "target_file": "constraints.md",
+          "target_section": "## Invariants",
+          "risk_dimension": "compatibility",
+          "statement": "STORY-010's ready contract asserts that the gate permits a rewritten state.json ('Only the contract inputs are frozen, not the records beside them') and that the write declaring contract_change is permitted ('Declaring a withholding state reopens the contract'). Any mechanism that refuses a state.json write while a story is ready breaks both scenarios and deadlocks the documented reopening route, and STORY-010's contract is frozen so it cannot be edited to accommodate it."
+        }
+      ]
+    },
+    {
+      "target_section": "invariants",
+      "risk_dimension": "invariant",
+      "roles": [
+        "product",
+        "dev",
+        "qa"
+      ],
+      "shared": true,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "constraints.md",
+          "target_section": "Invariants",
+          "risk_dimension": "invariant",
+          "statement": "\"History is appended to, never replaced\" is stated only in the docstring of src/amigos/story.py and holds only because set_state() is the sole writer; the request does not say whether preserving the history trail is part of what must now hold."
+        },
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Invariants",
+          "risk_dimension": "invariant",
+          "statement": "Detection must not itself become the unlock. `gate._ready_before_change()` catches `dor.StructuralError`, `story.StoryError` and `GateUnavailable` and returns False, and `frozen_contracts()` freezes a contract only when the story demonstrably evaluates ready. So any tamper check routed through `story.read_state()` or `dor.evaluate()` \u2014 raising, or merely withholding readiness \u2014 lifts STORY-010's contract freeze for the tampered story. The route that reports tampering while leaving readiness alone is the only one that does not hand the tamperer what they were after; the ticket leaves the route open and does not name this consequence."
+        },
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Invariants",
+          "risk_dimension": "invariant",
+          "statement": "`docs/component-design/execution.md` records that `verified` is computed and never stored, 'adding a second persisted verdict would recreate the problem dor.json already has'. A tamper verdict written to disk \u2014 into dor.json, into state.json itself, or into a new file beside the contract \u2014 is writable by the agent it judges, and `amigos check` rewrites dor.json on every run including in `/implement` Phase 0. The detection's authority has to be derived at the moment it is asked, not recorded, and the story does not say so."
+        },
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Invariants",
+          "risk_dimension": "invariant",
+          "statement": "A state.json the new mechanism flags must stay repairable through a documented command, not by hand-editing the file being judged. `amigos state <id> --set <state>` rewrites declared_state and updated_at and appends one history entry, so it restores self-consistency but cannot restore a history somebody truncated. The lifecycle the two skills perform must also keep working end to end under the new rule: `create` \u2192 `amigos_running` \u2192 `draft` for `/amigos`, and `contract_change` \u2192 stop for `/implement`, each of them committable."
+        },
+        {
+          "role": "qa",
+          "target_file": "constraints.md",
+          "target_section": "## Invariants",
+          "risk_dimension": "invariant",
+          "statement": "docs/component-design/contract-protocol.md records state.json's writer as 'agents and humans', and STORY-001 to STORY-003 carry the note 'hand-authored during Phase 0, before any validator existed'. A rule triggered by hand authorship would contradict the documented ownership and flag three of this repository's own committed stories. The invariant that must hold is that history only ever grows and declared_state is explained by it, not that a human never touches the file."
+        },
+        {
+          "role": "qa",
+          "target_file": "constraints.md",
+          "target_section": "## Invariants",
+          "risk_dimension": "invariant",
+          "statement": "Nothing in the request says the detector must write nothing. Gap 1 and gap 10 are both the same failure - `amigos check` rewriting the side of the comparison it is judged against - and a detector that normalised or repaired state.json as it read it would erase the evidence it exists to surface. That state.json is left byte-identical by a run of the check needs to be written down before implementation, not discovered after."
+        }
+      ]
+    },
+    {
+      "target_section": "out of scope",
+      "risk_dimension": "scope",
+      "roles": [
+        "product",
+        "qa"
+      ],
+      "shared": true,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "Out of Scope",
+          "risk_dimension": "scope",
+          "statement": "Today any declarable state may follow any other, and the request does not say whether transition legality (README's ready to contract_change to amigos_running sequence) becomes part of what is checked."
+        },
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "Out of Scope",
+          "risk_dimension": "scope",
+          "statement": "The request gives no sanctioned route for repairing a state.json that was legitimately hand-edited \u2014 a merge conflict resolution, an adoption bootstrap, a corrupted file \u2014 so a detection that refuses could leave a repository with no way back."
+        },
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "Out of Scope",
+          "risk_dimension": "scope",
+          "statement": ".amigos/ACTIVE and .amigos/config.json also change the gate's verdict without touching a contract file, and the request does not say whether they fall under \"silently changing contract state\" or stay with gap 5."
+        },
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "Out of Scope",
+          "risk_dimension": "scope",
+          "statement": "The gap analysis excludes dor.json as safe by construction while README's fourth bullet says \"contract state\" generally, so the contract must state that dor.json tamper detection is not being added here."
+        },
+        {
+          "role": "qa",
+          "target_file": "intent.md",
+          "target_section": "## Out of Scope",
+          "risk_dimension": "scope",
+          "statement": "The widest route around a blocked story is resolution, not declaration: AMIGOS_STORY wins over .amigos/ACTIVE and the branch name unconditionally, so an agent whose work belongs to a blocked story can export the id of any ready story and every governed write is permitted. gate.md names that precedence as intended for scripts and CI. Whether closing or reporting the conflict between sources belongs to this story is unsettled, and it is the largest privileged path the bullet points at."
+        },
+        {
+          "role": "qa",
+          "target_file": "intent.md",
+          "target_section": "## Out of Scope",
+          "risk_dimension": "scope",
+          "statement": "Nothing named in this story runs outside the session it constrains. A detector that only runs when the agent chooses to run it, in a file the agent can edit under any ready story, sits inside its own blast radius - the gap analysis's own gap 3. Task 3 (CI) is explicitly not this story, so the contract should state what gap 8 is claimed to close in the absence of it, or the milestone's exit criterion will be read as met by a check nobody is obliged to run."
+        }
+      ]
+    },
+    {
+      "target_section": "scenarios",
+      "risk_dimension": "coverage",
+      "roles": [
+        "product",
+        "dev"
+      ],
+      "shared": true,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "acceptance.feature",
+          "target_section": "Scenarios",
+          "risk_dimension": "coverage",
+          "statement": "The request describes editing state.json but not deleting it, truncating it to invalid JSON, or a story that never had one, each of which reaches a different branch of the gate and the validator today."
+        },
+        {
+          "role": "dev",
+          "target_file": "acceptance.feature",
+          "target_section": "Scenarios",
+          "risk_dimension": "coverage",
+          "statement": "The behaviour that most needs a counterexample is the legitimate one: a genuine `amigos state --set contract_change` on a ready story must not be reported as tampering, or the mechanism makes the documented reopen route unusable. Alongside it, the cases with no scenario yet are an unanswerable check (no git, or state.json never committed), a truncated history, a state.json copied wholesale from another story, and a story flagged as tampered whose contract is still frozen rather than released."
+        }
+      ]
+    },
+    {
+      "target_section": "dependencies",
+      "risk_dimension": "compatibility",
+      "roles": [
+        "dev"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Dependencies",
+          "risk_dimension": "compatibility",
+          "statement": "The existing corpus already contains the shape a consistency rule would flag. `tests/fixtures/stories/RUNNING-001/state.json` declares `amigos_running` while its only history entry is `draft`, and `tests/test_dor.py::test_contract_change_also_withholds_readiness` hand-writes `declared_state` into READY-001's state.json with no history entry and asserts the declaration takes effect. `tests/test_dor.py:107` and `tests/test_cli.py:26` also depend on RUNNING-001 evaluating. A declared_state-matches-history rule changes the outcome of those tests and requires the fixture to be rewritten; nobody has decided whether the fixture or the rule gives way."
+        }
+      ]
+    },
+    {
+      "target_section": "invariants",
+      "risk_dimension": "ambiguity",
+      "roles": [
+        "qa"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "qa",
+          "target_file": "constraints.md",
+          "target_section": "## Invariants",
+          "risk_dimension": "ambiguity",
+          "statement": "'A declared_state with no supporting history entry' has two readings a careful reader could take: (a) declared_state differs from the state of the LAST history entry, or (b) no entry anywhere in history records that state. They disagree on a real case - declared draft with history [draft, amigos_running] passes under (b) and fails under (a). set_state() guarantees (a), so (a) is the stronger rule, but nothing written says which is meant."
+        }
+      ]
+    },
+    {
+      "target_section": "out of scope",
+      "risk_dimension": "feasibility",
+      "roles": [
+        "qa"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "qa",
+          "target_file": "intent.md",
+          "target_section": "## Out of Scope",
+          "risk_dimension": "feasibility",
+          "statement": "A hand edit that appends a well-formed entry and updates declared_state and updated_at is byte-indistinguishable from what `amigos state` writes - the command's output is reproducible by hand. So 'detects a hand-edited state.json' cannot be built as worded. Only inconsistent or evidence-erasing edits are detectable, and the story must say that it detects unrecorded change rather than hand authorship, or it will be judged against a claim nothing can satisfy."
+        }
+      ]
+    },
+    {
+      "target_section": "problem",
+      "risk_dimension": "ambiguity",
+      "roles": [
+        "product"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "Problem",
+          "risk_dimension": "ambiguity",
+          "statement": "A live uncommitted state.json legitimately differs from the committed copy \u2014 that is exactly how STORY-010's reopening route is designed to work \u2014 so difference from git is not by itself evidence of a hand edit, and the request does not say what distinguishes the two."
+        }
+      ]
+    },
+    {
+      "target_section": "scenario: a reopening recorded with no reason is reported",
+      "risk_dimension": "coverage",
+      "roles": [
+        "qa"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "qa",
+          "target_file": "acceptance.feature",
+          "target_section": "Scenario: a reopening recorded with no reason is reported",
+          "risk_dimension": "coverage",
+          "statement": "story.set_state() treats `note` as optional, so `amigos state X --set contract_change` with no --note writes an entry carrying no reason, and cli._gate() only suggests --note in prose. If the mechanism's claim is that a contract state change leaves evidence, an unexplained reopening through the sanctioned command is the cheapest route around it and no scenario covers it."
+        }
+      ]
+    },
+    {
+      "target_section": "scenario: a state.json that violates the shipped schema is reported",
+      "risk_dimension": "compatibility",
+      "roles": [
+        "qa"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "qa",
+          "target_file": "acceptance.feature",
+          "target_section": "Scenario: a state.json that violates the shipped schema is reported",
+          "risk_dimension": "compatibility",
+          "statement": "schemas/state.schema.json pins required keys, an enum and additionalProperties:false, but no shipped code validates against it - only tests/test_dogfooding.py does, over an allowlist of six story ids. story.read_state() ignores unknown keys, a missing schema_version, and a story_id that disagrees with the directory name. This repository therefore holds itself to a check it does not ship to the projects it asks to adopt the protocol, which inverts the milestone's own exit criterion."
+        }
+      ]
+    },
+    {
+      "target_section": "scenario: a state.json the check cannot read is not reported as clean",
+      "risk_dimension": "testability",
+      "roles": [
+        "qa"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "qa",
+          "target_file": "acceptance.feature",
+          "target_section": "Scenario: A state.json the check cannot read is not reported as clean",
+          "risk_dimension": "testability",
+          "statement": "The exit code for an unreadable state.json is unsettled. verify.py's stated invariant is that a question that could not be answered never reads as verified, and reserves 2 for 'I could not tell'; but corrupt JSON is also a plausible tamper, which is 1. Today dor.evaluate() raises StructuralError and the CLI exits 2. Two reviewers would disagree on pass or fail unless the contract picks one."
+        }
+      ]
+    },
+    {
+      "target_section": "scenario: a story whose state.json has never been committed",
+      "risk_dimension": "coverage",
+      "roles": [
+        "qa"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "qa",
+          "target_file": "acceptance.feature",
+          "target_section": "Scenario: a story whose state.json has never been committed",
+          "risk_dimension": "coverage",
+          "statement": "A story scaffolded but not yet committed has no prior state.json in history, so an append-only comparison has nothing to compare against. STORY-010 met the same case for contracts and decided that a contract absent from HEAD has nothing to protect. The request does not say whether an uncommitted state.json reads as clean, as unanswerable, or as tampered, and the wrong answer either deadlocks `amigos create` or makes deleting the file's history the standard bypass."
+        }
+      ]
+    },
+    {
+      "target_section": "scenarios",
+      "risk_dimension": "testability",
+      "roles": [
+        "dev"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "acceptance.feature",
+          "target_section": "Scenarios",
+          "risk_dimension": "testability",
+          "statement": "'Detects' is not judgeable as written. A scenario has to name the command invoked, the state.json put in front of it, and the observable \u2014 exit code, and the identifying text in the report \u2014 because everything this story can produce is a report, and a report nobody inspects is indistinguishable from no mechanism. Gap 8's own wording, 'a declared_state with no supporting history entry is invisible', names an input shape but no observable."
+        }
+      ]
+    },
+    {
+      "target_section": "success",
+      "risk_dimension": "compatibility",
+      "roles": [
+        "product"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "Success",
+          "risk_dimension": "compatibility",
+          "statement": "A new rule over state.json is applied retroactively to ten already-committed state.json files in this repository, two of which were hand-authored before any validator existed, and the closeout commands `amigos status` and `amigos gate --staged` must keep passing."
+        }
+      ]
+    },
+    {
+      "target_section": "technical constraints",
+      "risk_dimension": "ambiguity",
+      "roles": [
+        "dev"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Technical Constraints",
+          "risk_dimension": "ambiguity",
+          "statement": "'Which command reports it' is left open while every candidate already has a full exit-code vocabulary it cannot extend: check is 0 ready / 1 not ready / 2 structural, gate is 0 permitted / 1 refused / 2 could not run, verify is 0 verified / 1 not verified / 2 unanswerable, status is 0 / 1 / 2. A new answer must be mapped onto an existing code in an existing command, or a new command must be added to the CLI surface and to README section 33's command list. Which of those happens changes what callers \u2014 the pre-commit hook, `gate_hook.py`, both SKILL.md closeout blocks \u2014 see."
+        }
+      ]
+    },
+    {
+      "target_section": "technical constraints",
+      "risk_dimension": "compatibility",
+      "roles": [
+        "dev"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Technical Constraints",
+          "risk_dimension": "compatibility",
+          "statement": "`schemas/state.schema.json` is `additionalProperties: false` with `required` = schema_version, story_id, declared_state, updated_at, and history items are closed to state/at/note. Any new field \u2014 a sequence number, a chain hash, a writer marker \u2014 is a schema change that every committed state.json in `.amigos/stories/` and every fixture must then satisfy. Separately, `story.read_state()` today validates neither `schema_version` nor `story_id` and silently drops non-dict history entries, so tightening it changes behaviour for `dor.evaluate()`, `gate._ready_at_head()` and `cli._state()` at once, and `tests/test_dogfooding.py` checks the schema through a hard-coded STORY_IDS tuple that already omits STORY-006 and STORY-009 onward (gap 9)."
+        }
+      ]
+    },
+    {
+      "target_section": "technical constraints",
+      "risk_dimension": "feasibility",
+      "roles": [
+        "dev"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Technical Constraints",
+          "risk_dimension": "feasibility",
+          "statement": "Nothing in this repository can distinguish a state.json transition written by `amigos state` from one written by hand. `set_state()` takes a state and a free-text note and writes them; there is no key, no signature, and no writer identity, so a forged entry that names a declarable state and a plausible timestamp is byte-for-byte what the command would have produced. Detection is therefore bounded to internal inconsistency (declared_state disagreeing with the last history entry, updated_at disagreeing with its `at`, a missing or empty history, a story_id that is not the directory name) and to a history that is not an append-only extension of the committed one. A well-formed forged `contract_change` stays undetectable, and that is the exact unlock STORY-010's own open-questions.md and gate.md point at."
+        },
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Technical Constraints",
+          "risk_dimension": "feasibility",
+          "statement": "No mechanism here can bind a change to the story it is really *for*. `gate.resolve_story()` asks only whether the resolved story is ready, and all three resolution sources are writable by the agent being gated: `AMIGOS_STORY` is an env var, `.amigos/ACTIVE` is gitignored per-checkout state, and the branch name is renameable. An agent whose story is blocked can point resolution at any ready story and keep working. Refusing exempt paths under a blocked story is not the escape either: repairing a blocked contract requires editing `.amigos/**`, so gating that deadlocks the protocol for exactly the stories the rule is about."
+        }
+      ]
+    },
+    {
+      "target_section": "technical constraints",
+      "risk_dimension": "invariant",
+      "roles": [
+        "dev"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "dev",
+          "target_file": "constraints.md",
+          "target_section": "Technical Constraints",
+          "risk_dimension": "invariant",
+          "statement": "The ticket puts the work on branch `story/STORY-010-gate-refuses-contract-edit`, and on that branch `gate.resolve_story()` resolves STORY-010, which is ready \u2014 so every governed write for STORY-011 would be permitted by another story's readiness. Implementing this story under that resolution is itself the privileged path the milestone exit criterion forbids. The work needs its own branch, `.amigos/ACTIVE`, or `AMIGOS_STORY` before any governed file is touched."
+        }
+      ]
+    },
+    {
+      "target_section": "user",
+      "risk_dimension": "ambiguity",
+      "roles": [
+        "product"
+      ],
+      "shared": false,
+      "sources": [
+        {
+          "role": "product",
+          "target_file": "intent.md",
+          "target_section": "User",
+          "risk_dimension": "ambiguity",
+          "statement": "The request does not name who is meant to learn that state.json was hand-edited \u2014 the agent being constrained in the moment, a reviewer reading history afterwards, or CI \u2014 and that choice decides which command carries the behaviour."
+        }
+      ]
+    }
+  ]
+}

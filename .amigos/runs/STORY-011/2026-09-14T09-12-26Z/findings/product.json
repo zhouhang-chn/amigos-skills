@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "story_id": "STORY-011",
+  "role": "product",
+  "findings": [
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Desired Outcome",
+      "risk_dimension": "ambiguity",
+      "statement": "The request says \"detects\" without saying whether detection refuses the action, reports it to a caller, or changes derived readiness, and those three produce different outcomes for the person the mechanism is meant to protect."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "User",
+      "risk_dimension": "ambiguity",
+      "statement": "The request does not name who is meant to learn that state.json was hand-edited \u2014 the agent being constrained in the moment, a reviewer reading history afterwards, or CI \u2014 and that choice decides which command carries the behaviour."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "scope",
+      "statement": "The request bundles two of README phase 6's bullets (working against blocked stories, silently changing contract state) into one story without settling whether both must ship for milestone task 5 to be complete."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "scope",
+      "statement": "Running `amigos state <id> --set contract_change` leaves a history entry and is therefore not silent, so the request does not settle whether reopening a frozen contract should become harder or only unrecorded state change should become visible."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Desired Outcome",
+      "risk_dimension": "testability",
+      "statement": "\"Working against a blocked story\" is not observable from a set of changed paths: the gate knows only the resolved active story, so a change made for a blocked story while a different ready story resolves is indistinguishable from legitimate work."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Problem",
+      "risk_dimension": "ambiguity",
+      "statement": "A live uncommitted state.json legitimately differs from the committed copy \u2014 that is exactly how STORY-010's reopening route is designed to work \u2014 so difference from git is not by itself evidence of a hand edit, and the request does not say what distinguishes the two."
+    },
+    {
+      "role": "product",
+      "target_file": "constraints.md",
+      "target_section": "Invariants",
+      "risk_dimension": "compatibility",
+      "statement": "STORY-010's contract freeze fails open on any story it cannot evaluate, so treating a tampered state.json as a structural error would turn tampering into a better unlock for contract edits than it is today."
+    },
+    {
+      "role": "product",
+      "target_file": "constraints.md",
+      "target_section": "Invariants",
+      "risk_dimension": "invariant",
+      "statement": "\"History is appended to, never replaced\" is stated only in the docstring of src/amigos/story.py and holds only because set_state() is the sole writer; the request does not say whether preserving the history trail is part of what must now hold."
+    },
+    {
+      "role": "product",
+      "target_file": "constraints.md",
+      "target_section": "Dependencies",
+      "risk_dimension": "dependency",
+      "statement": "Any check of state.json against git history assumes the file is committed and reachable from HEAD, which is false for a story whose first commit has not happened, for a freshly adopted repository, and after a rebase."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "In Scope",
+      "risk_dimension": "scope",
+      "statement": "read_state() validates only declared_state and the type of history, never schemas/state.schema.json, so whether story_id, schema_version and unknown keys are part of \"hand-edited\" is undecided even though tests/test_dogfooding.py already asserts the schema for this repository's own stories."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Out of Scope",
+      "risk_dimension": "scope",
+      "statement": "Today any declarable state may follow any other, and the request does not say whether transition legality (README's ready to contract_change to amigos_running sequence) becomes part of what is checked."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Out of Scope",
+      "risk_dimension": "scope",
+      "statement": "The request gives no sanctioned route for repairing a state.json that was legitimately hand-edited \u2014 a merge conflict resolution, an adoption bootstrap, a corrupted file \u2014 so a detection that refuses could leave a repository with no way back."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Out of Scope",
+      "risk_dimension": "scope",
+      "statement": ".amigos/ACTIVE and .amigos/config.json also change the gate's verdict without touching a contract file, and the request does not say whether they fall under \"silently changing contract state\" or stay with gap 5."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Success",
+      "risk_dimension": "compatibility",
+      "statement": "A new rule over state.json is applied retroactively to ten already-committed state.json files in this repository, two of which were hand-authored before any validator existed, and the closeout commands `amigos status` and `amigos gate --staged` must keep passing."
+    },
+    {
+      "role": "product",
+      "target_file": "acceptance.feature",
+      "target_section": "Scenarios",
+      "risk_dimension": "coverage",
+      "statement": "The request describes editing state.json but not deleting it, truncating it to invalid JSON, or a story that never had one, each of which reaches a different branch of the gate and the validator today."
+    },
+    {
+      "role": "product",
+      "target_file": "intent.md",
+      "target_section": "Out of Scope",
+      "risk_dimension": "scope",
+      "statement": "The gap analysis excludes dor.json as safe by construction while README's fourth bullet says \"contract state\" generally, so the contract must state that dor.json tamper detection is not being added here."
+    }
+  ]
+}

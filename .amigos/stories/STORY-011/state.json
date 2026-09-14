@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "story_id": "STORY-011",
+  "declared_state": "draft",
+  "updated_at": "2026-09-14T09:23:07Z",
+  "history": [
+    {
+      "state": "draft",
+      "at": "2026-09-14T09:04:04Z",
+      "note": "story workspace created"
+    },
+    {
+      "state": "amigos_running",
+      "at": "2026-09-14T09:04:04Z",
+      "note": "v0.6 task 5: nothing detects a hand-edited state.json, and README phase 6's 'working against blocked stories' has no mechanism of its own"
+    },
+    {
+      "state": "draft",
+      "at": "2026-09-14T09:23:07Z",
+      "note": "amigos run complete"
+    }
+  ]
+}
