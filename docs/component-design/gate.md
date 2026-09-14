@@ -15,11 +15,13 @@ README section 18:
                             |
                     gate.decide()
                             |
-        +--------------+----+-----------+---------------+
-        |              |                |               |
-  a ready story's  governed        active story?   dor.evaluate()
-  contract file?   paths?          (env > file >   (recomputed,
-  (fails OPEN)     (fail closed)    branch)         never read)
+    +--------+--------+----+-----------+---------------+
+    |        |              |                |               |
+ lifecycle  a ready     governed        active story?   dor.evaluate()
+ record     story's     paths?          (env > file >   (recomputed,
+ holds?     contract    (fail closed)    branch)         never read)
+ (asked     file?
+  first)    (fails OPEN)
 ```
 
 Adapters collect changed paths, call the decision, and translate the exit code
@@ -142,6 +144,75 @@ rule that guidance is backwards — the change is refused *because* the story is
 ready — so a frozen-contract refusal names the story, the file, and
 `amigos state <id> --set contract_change` instead.
 
+## A story's lifecycle record must hold together
+
+Closed in v0.6 by STORY-011, and it is what stops the freeze above from being
+lifted with a text editor. Reopening a frozen contract means declaring
+`contract_change` in `state.json`, and until this story nothing looked at that
+file twice — a declaration written by hand read exactly like one the protocol
+produced.
+
+```text
+declared_state  ==  the state of the last history entry
+updated_at      ==  the 'at' of that entry
+committed history  is a prefix of  the current history
+```
+
+The first two are what `set_state()` guarantees by construction, so every
+transition the command writes satisfies them. The third needs git.
+
+### Why equality with the committed copy could not carry it
+
+`state.json` is *supposed* to move. A story mid-drafting has uncommitted
+transitions by design — the amigos skill declares `amigos_running` in Phase 0 and
+returns to `draft` in Phase 7 — so "differs from HEAD", which is the whole rule
+for the four contract files, is the normal case here rather than the signal. The
+transferable rule is append-only: history is evidence, and evidence may grow.
+
+### It is a gate decision, never a readiness verdict
+
+This is the load-bearing part of the design. Readiness derivation is untouched:
+`dor.evaluate()` still honours a withholding `declared_state` however it was
+written. Routing the refusal through readiness would have **inverted** it — a
+story reported as tampered would evaluate as not ready, and `frozen_contracts()`
+freezes only a story that demonstrably evaluates ready, so the report would have
+released the contract it exists to protect.
+
+It is asked before the freeze for the same reason: that question reads
+`state.json` live, so a record which does not hold together makes its verdict
+untrustworthy rather than merely inconvenient.
+
+### Repair must stay possible
+
+A write to a story's own `state.json` is permitted however broken that record is,
+because `set_state()` parses the file before writing it — a corrupt record could
+otherwise never be repaired by the command, and the repository would deadlock.
+
+The exception is erasing committed history, which is never repair. That refuses
+whichever path is being written, which is what stops a rewrite from being
+laundered by committing it.
+
+### Where it defers
+
+Two cases belong to rules that already exist and say it better:
+
+- a `declared_state` that is not declarable at all — `ready`, `blocked`, or a
+  word from nowhere — is refused by `story.read_state()`, in more precise terms
+  than this rule could offer;
+- a story directory that does not exist has no record to judge, and STORY-010
+  already decided that a contract which cannot be evaluated stays editable.
+
+A story directory that exists but has *lost* its `state.json` is refused, because
+deleting the record must not be cheaper than corrupting it.
+
+### What it cannot catch
+
+A well-formed forgery. There is no key, no signature and no writer identity, so
+an appended entry naming a declarable state and a plausible timestamp is
+byte-identical to one the command would have written. This detects an
+**unrecorded** change, not hand authorship — and the story says so in its own
+`## Out of Scope` rather than implying otherwise.
+
 ## Exit codes
 
 | Code | Meaning | Adapter behaviour |
@@ -166,6 +237,10 @@ confidence.
 | Writes through `Bash` are not gated | Recorded as a non-blocking open question rather than fixed speculatively | to be decided on evidence |
 | `.amigos/config.json` carries `gate.exempt` and is itself exempt, so a ready story permits switching this rule off | The same shape as the `.claude/settings.json` hole above, and no narrower | v0.6, with its sibling |
 | `working_tree_paths()` still omits deletions, so `amigos gate` with no arguments misses a deleted contract file | `staged_paths()` is the collector every commit goes through, and it was fixed by STORY-010 | not yet scheduled |
+| A well-formed hand edit to `state.json` is byte-identical to a recorded transition | There is nothing to compare it against: no key, no signature, no writer identity | not scheduled; it needs a mechanism this project does not have |
+| A history rewrite committed with `--no-verify` is invisible afterwards, because the comparison is against HEAD | The commit itself is refused at the pre-commit adapter, so it takes a second deliberate bypass | v0.6 gap 4, still open |
+| `schemas/state.schema.json` is enforced only by `tests/test_dogfooding.py`, over an allowlist of story ids | This repository holds itself to a check it does not ship to adopters | recorded as a non-blocking question on STORY-011 |
+| `amigos state --set` accepts a transition with no `--note`, so a sanctioned reopening can carry no reason | An unexplained change is a different hole from an unrecorded one | recorded as a non-blocking question on STORY-011 |
 
 The aim of this milestone is README section 18's wording exactly — that skipping
 the contract is *harder* than following it. Impossibility is a later problem.

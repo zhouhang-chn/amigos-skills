@@ -6,9 +6,11 @@
 - [x] 2. **STORY-010** — the gate refuses a contract edit while a story is ready.
 - [ ] 3. Enforcement outside the session: CI re-running the gate over a push range.
 - [ ] 4. Governed writes made through `Bash`.
-- [ ] 5. Blocked stories, and a hand-edited `state.json`.
+- [x] 5. **STORY-011** — contract state evidence, and blocked stories.
 
-Tasks 1 and 2 are contracted and built. Each later task needs its own `/amigos`
+Tasks 1, 2 and 5 are contracted and built. Task 5 was taken ahead of 3 and 4
+because STORY-010 made it load-bearing: the freeze it shipped reads its unlock
+from `state.json`, and nothing verified that file. Each later task needs its own `/amigos`
 run before it has one, and the order is not arbitrary: every later protection
 assumes a baseline that cannot be moved from inside the session, which is task 1.
 
@@ -131,3 +133,69 @@ amigos gate --staged                 # this slice's own changes permitted
 | A commit-time refusal deadlocks this repository's own contract commits. | Readiness at commit time comes from `HEAD`, so an uncommitted contract has nothing to protect. Tested as its own scenario. |
 | Failing open makes a corrupt `state.json` an unlock. | Stated rather than hidden. A hand-written `contract_change` is an equally cheap unlock and is gap 8, task 5. |
 | Adding `D` to the staged collector changes decisions beyond this story. | Intended: a staged deletion of a governed path now needs a ready story, which is what fail-closed already implies. `working_tree_paths()` is left alone and recorded. |
+
+
+## STORY-011
+
+Branch: `story/STORY-011-contract-state-evidence`.
+
+Built by running `/implement` against the contract committed at `c35704b`.
+As with STORY-009 and STORY-010 the tasks below are **predictions, not
+instructions**: the skill derives its work from the twelve scenarios in
+`acceptance.feature`, and where the two diverge the list is what was wrong.
+
+- [x] 1. `story_file()` in `src/amigos/gate.py`, with `contract_file()` and a new
+      `lifecycle_file()` derived from it, so a path is named by location and not
+      by string prefix.
+- [x] 2. `LifecycleReport`, and the three checks: declaration recorded, timestamp
+      recorded, committed history still a prefix.
+- [x] 3. `lifecycle_report()` reading the record as the change would leave it —
+      the index under `--staged`, the working tree otherwise.
+- [x] 4. `lifecycle_refusals()`, implicating a story strictly for its contract or
+      as the resolved story, leniently for its own `state.json`.
+- [x] 5. The question asked in `decide()` *before* the contract freeze.
+- [x] 6. `amigos state <ID>` with no `--set` reports the record: 0 consistent,
+      1 inconsistent, 2 could not read.
+- [x] 7. A blocked story's refusal names the derived state, a failed check, and
+      the amigos skill.
+- [x] 8. `tests/test_gate_lifecycle.py`, one test per scenario.
+- [x] 9. Closeout: `gate.md`, `design.md`, this plan, `implementation-notes.md`.
+
+## Acceptance criteria
+
+Each task traces to a scenario in `.amigos/stories/STORY-011/acceptance.feature`:
+
+| Task | Scenario |
+|---|---|
+| 2, 5 | *A declared state the history does not record is refused* |
+| 2, 3 | *A history entry removed after it was committed is refused* |
+| 7 | *A governed change under a blocked story is refused with the route out* |
+| 2, 6 | *A reopening recorded through the state command is permitted* |
+| 5 | *Declaring contract_change still reopens a frozen contract* |
+| 3, 4 | *The commit that would launder a rewritten history is refused* |
+| 1, 4 | *A write to the story's own state.json is permitted while the record is inconsistent* |
+| 2, 5 | *A state.json that cannot be parsed is refused rather than permitted* |
+| 2, 6 | *A state.json that was never committed is not reported as inconsistent* |
+| 7 | *No declarable state makes a blocked story permit a governed change* |
+| 2, 6 | *Every story in this repository passes the consistency rule* |
+| 6 | *The report writes nothing* |
+
+## Verification commands
+
+```bash
+python -m pytest -q                  # every test, including the new ones
+amigos check STORY-011               # exit 0, ready
+amigos verify STORY-011              # exit 0, contract unchanged since the baseline
+amigos status                        # every story ready, exit 0
+amigos gate --staged                 # this slice's own changes permitted
+```
+
+## Risks
+
+| Risk | Mitigation |
+|---|---|
+| A tamper check routed through readiness releases the contract freeze instead of holding it, because the freeze fails open. | The refusal is a gate decision and never a readiness verdict. Named as an invariant in `constraints.md` and held by the scenario *Declaring contract_change still reopens a frozen contract*. |
+| A corrupt `state.json` cannot be repaired by `amigos state`, which parses before writing, so refusing the hand repair deadlocks the repository. | A write to a story's own `state.json` stays permitted. Held by its own scenario. |
+| The new question fires ahead of refusals that already exist and says less than they do. | It defers where `story.read_state()` or STORY-010 already answers. Caught by three existing tests failing, not by inspection. |
+| This repository's ten stories are judged by a rule written after they were authored, two of them by hand before any validator existed. | Verified against the corpus before the contract was written, and held by the scenario *Every story in this repository passes the consistency rule*. |
+| The branch resolves to STORY-010, whose readiness would permit this story's writes. | Named in `constraints.md` under Dependencies; the story has its own branch. |

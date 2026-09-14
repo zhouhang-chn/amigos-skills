@@ -84,11 +84,13 @@ def build_parser() -> argparse.ArgumentParser:
     _add_common(gate)
 
     state = subparsers.add_parser(
-        "state", help="record a lifecycle transition in state.json")
+        "state",
+        help="record a lifecycle transition in state.json, or report the record")
     state.add_argument("story_id")
-    state.add_argument("--set", dest="declared", required=True,
+    state.add_argument("--set", dest="declared", default=None,
                        metavar="STATE",
-                       help=f"one of: {', '.join(story.DECLARABLE_STATES)}")
+                       help=f"one of: {', '.join(story.DECLARABLE_STATES)}; "
+                            "omit to report the record instead of changing it")
     state.add_argument("--note", default=None, help="why the transition happened")
     _add_common(state)
 
@@ -311,6 +313,24 @@ def _gate(cfg: config_module.Config, args: argparse.Namespace) -> int:
     print(f"gate: refused - {decision.reason}", file=sys.stderr)
     print(file=sys.stderr)
 
+    if decision.lifecycle:
+        # The record that says which state this story is in does not hold
+        # together, so no readiness guidance derived from it would be sound.
+        print("lifecycle records that do not hold together:", file=sys.stderr)
+        for entry in decision.lifecycle[:20]:
+            print(f"  {entry['story_id']}: {entry['message']}", file=sys.stderr)
+        if len(decision.lifecycle) > 20:
+            print(f"  ... and {len(decision.lifecycle) - 20} more", file=sys.stderr)
+        print(file=sys.stderr)
+        print("Repair the record through the state command, which appends rather",
+              file=sys.stderr)
+        print("than replaces:", file=sys.stderr)
+        for story_id in sorted({e["story_id"] for e in decision.lifecycle}):
+            print(f"  amigos state {story_id} --set <state> --note \"<why>\"",
+                  file=sys.stderr)
+            print(f"  amigos state {story_id}", file=sys.stderr)
+        return decision.exit_code
+
     if decision.frozen:
         # A contract edit is refused because the story IS ready, so the usual
         # "make the story ready" guidance would send the caller the wrong way.
@@ -338,6 +358,13 @@ def _gate(cfg: config_module.Config, args: argparse.Namespace) -> int:
         print(f"  export {gate_module.ENV_VAR}=STORY-123", file=sys.stderr)
         print(f"  echo STORY-123 > .amigos/{gate_module.ACTIVE_FILE}", file=sys.stderr)
         print("  git switch -c story/STORY-123-short-description", file=sys.stderr)
+    elif decision.state == "blocked":
+        # A blocked story fails a check, so re-running the validator returns the
+        # same verdict. It is a different job, not a smaller one.
+        print(f"Story {decision.story_id} is blocked. Re-contract it through the "
+              "amigos skill;", file=sys.stderr)
+        print("re-running the check will report the same failures:", file=sys.stderr)
+        print(f"  amigos check {decision.story_id}", file=sys.stderr)
     else:
         print(f"Make the story ready, then retry:", file=sys.stderr)
         print(f"  amigos check {decision.story_id}", file=sys.stderr)
@@ -358,11 +385,39 @@ def _state(cfg: config_module.Config, args: argparse.Namespace) -> int:
     if not directory.is_dir():
         print(f"error: {directory}: story not found", file=sys.stderr)
         return EXIT_ERROR
+    if args.declared is None:
+        return _state_report(cfg, args.story_id, directory)
     before = story.read_state(directory).declared_state
     after = story.set_state(directory, args.declared, note=args.note)
     print(f"{args.story_id}: {before} -> {after.declared_state}")
     print(f"  {len(after.history)} entries in history")
     return EXIT_OK
+
+
+def _state_report(cfg: config_module.Config, story_id: str, directory: Path) -> int:
+    """Report the lifecycle record. Writes nothing, and asks the gate's question.
+
+    Exit 0 the record holds together, 1 it does not, 2 it could not be read or
+    there is nothing committed to compare it against. One rule, two surfaces:
+    this consults the same function the gate's refusal does.
+    """
+    report = gate_module.lifecycle_report(cfg, story_id)
+
+    try:
+        state = story.read_state(directory)
+        print(f"{story_id}: {state.declared_state}")
+        print(f"  {len(state.history)} entries in history")
+    except story.StoryError as exc:
+        print(f"{story_id}: unreadable")
+        print(f"  {exc}")
+
+    for _, message in report.findings:
+        print(f"  {message}")
+    for question in report.unanswered:
+        print(f"  not compared: {question}")
+    if not report.findings and not report.unanswered:
+        print("  lifecycle record: consistent")
+    return report.exit_code
 
 
 def _findings(cfg: config_module.Config, args: argparse.Namespace) -> int:

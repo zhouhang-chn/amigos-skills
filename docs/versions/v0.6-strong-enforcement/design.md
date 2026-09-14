@@ -6,6 +6,7 @@ The milestone's stories, in order, with the first one designed in full.
 |---|---|---|
 | STORY-009 | Contract immutability: the baseline moves to git history | contracted |
 | STORY-010 | The gate refuses a contract edit while a story is ready | contracted |
+| STORY-011 | A contract state change leaves evidence, and a blocked story permits no work | contracted |
 | — | Enforcement outside the session: CI over a push range | not contracted |
 | — | Governed writes made through `Bash` | not contracted |
 | — | Blocked stories and a hand-edited `state.json` | not contracted |
@@ -211,3 +212,86 @@ hand, which is available anyway — both are gap 8, task 5 of this milestone.
 - **Writes through `Bash`, and `--no-verify`.** Gaps 6 and 4. An edit-time rule
   that the tool never reaches is not an edit-time rule, which is why the refusal
   holds at commit time too.
+
+
+## STORY-011 — contract state evidence and blocked stories
+
+Milestone task 5, gap 8, and README phase 6's second and fourth bullets.
+
+### The ticket asked for something unbuildable
+
+The request was to detect a hand-edited `state.json`. Development and QA reached
+the same conclusion independently and from different directions: `set_state()`
+takes a state and a free-text note and writes them, with no key, no signature and
+no writer identity, so an appended entry naming a declarable state and a
+plausible timestamp is **byte-identical** to one the command would have produced.
+
+What is buildable is detecting an *unrecorded* change, which is what gap 8's own
+wording — "a `declared_state` with no supporting history entry" — actually names.
+The contract records the narrowing under `## Out of Scope` rather than
+reinterpreting the request quietly.
+
+### The rule
+
+```text
+declared_state  ==  the state of the last history entry
+updated_at      ==  the 'at' of that entry
+committed history  is a prefix of  the current history
+```
+
+The strict reading was chosen over the loose one ("some entry records this
+state") because the loose reading passes `draft` declared over a history of
+`[draft, amigos_running]` — a mid-run rollback that makes a half-written contract
+read as ready. The strict reading is also what `set_state()` already guarantees,
+so every legitimate transition satisfies it by construction, and all ten of this
+repository's stories passed it before a line was written.
+
+Equality with the committed copy could not carry the rule. `state.json` is
+supposed to move, and a story mid-drafting has uncommitted transitions by design.
+
+### Why it is a gate decision and not a readiness verdict
+
+The design turns on this. `gate.frozen_contracts()` freezes only a story that
+*demonstrably* evaluates ready, and `_ready_before_change()` fails open. So a
+tamper check that withheld readiness — or that raised out of `read_state()` —
+would have **released** STORY-010's freeze for exactly the story it flagged.
+Detection would have widened the hole it was built to close.
+
+Readiness derivation is therefore untouched, and STORY-010's fail-open rule
+stays as it shipped rather than being re-contracted as a side effect.
+
+### Repair, and the one thing that is never repair
+
+A write to a story's own `state.json` is permitted however broken that record is.
+This is forced: `set_state()` parses the file before writing it, so a corrupt
+record could not be repaired through the command, and refusing the hand repair
+too would deadlock the repository.
+
+Erasing committed history is the exception, because it is never repair. That is
+what separates the two scenarios which look contradictory — a `state.json` write
+permitted in one and refused in the other.
+
+### Where it defers
+
+A `declared_state` that is not declarable at all is already refused by
+`story.read_state()` in more precise words, and a story directory that does not
+exist has no record to judge — STORY-010 settled that an unevaluable contract
+stays editable. Restating either would be two implementations of one rule.
+
+A story directory that exists but has lost its `state.json` is refused, so
+deleting the record is not cheaper than corrupting it.
+
+### The blocked-story half
+
+`blocked` was already refused, by the same sentence that refuses a story with no
+contract at all, and the guidance ended `Make the story ready, then retry: amigos
+check <id>` — naming a command that cannot make a blocked story ready. The
+refusal now reports the derived state, names a failed check, and names
+re-contracting through the amigos skill, because a blocked story is a different
+job and not a smaller one.
+
+### What this still does not catch
+
+A well-formed forgery, a history rewrite committed with `--no-verify` (gap 4),
+and any write made outside a checkout with the hooks installed (milestone task
+3). All recorded in `docs/component-design/gate.md` under known holes.

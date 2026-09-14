@@ -175,6 +175,131 @@ amigos status                exit 0, all nine stories ready
 amigos gate --staged         permitted, STORY-010 (branch name)
 ```
 
+## STORY-011 — contract state evidence and blocked stories
+
+Built by running `/implement` against the contract committed at `c35704b`.
+Run record: `.amigos/runs/STORY-011/2026-09-14T10-05-00Z/implementation.md`.
+
+Taken ahead of milestone tasks 3 and 4 because STORY-010 made it load-bearing:
+the freeze that shipped two commits earlier reads its unlock from `state.json`,
+and nothing verified that file.
+
+### What was built
+
+`gate.py` gained a third question, asked before the contract freeze. A story's
+lifecycle record must hold together — `declared_state` and `updated_at` are the
+ones its last history entry records, and the committed history is still a prefix
+of the current one — or every governed write for that story is refused.
+
+`amigos state <ID>` with no `--set` became the report: 0 consistent, 1
+inconsistent, 2 could not read. `--set` is now optional rather than required, so
+the surface is additive and no exit vocabulary was extended.
+
+A blocked story's refusal now names its derived state, a failed check, and
+re-contracting through the amigos skill. It previously ended `Make the story
+ready, then retry: amigos check <id>`, naming a command that returns the same
+verdict on a story that fails a check.
+
+### The finding that changed the story
+
+The ticket asked for detection of a hand-edited `state.json`. Development and QA
+found independently that this is unbuildable: with no key, no signature and no
+writer identity, a well-formed hand edit is byte-identical to what `set_state()`
+writes. The contract narrowed to detecting an *unrecorded* change — gap 8's own
+wording — and recorded the narrowing under `## Out of Scope`.
+
+This is worth keeping visible. A run that had quietly shipped "detects a
+hand-edited state.json" would have left the milestone claiming a protection
+nothing implements.
+
+### Decisions
+
+- **The refusal is a gate decision, never a readiness verdict.** Routing it
+  through readiness would have inverted it: `frozen_contracts()` freezes only a
+  story that demonstrably evaluates ready, so a tampered story reported as not
+  ready would have had its contract *released*. Detection would have widened the
+  hole it closes.
+- **Asked before the freeze**, because the freeze reads `state.json` live.
+- **A write to a story's own `state.json` stays permitted**, since `set_state()`
+  parses before writing and a corrupt record could otherwise never be repaired.
+  Erasing committed history is the exception; that is never repair.
+- **Strict over loose consistency.** The loose reading — "some entry records this
+  state" — passes `draft` declared over `[draft, amigos_running]`, which is a
+  mid-run rollback. The strict reading is what `set_state()` already guarantees.
+- **Defer where a louder rule already speaks.** An undeclarable `declared_state`
+  is refused by `story.read_state()`; a story directory that does not exist was
+  settled by STORY-010. Both defer rather than being restated.
+
+### Red before green, and the part that was not red
+
+`tests/test_gate_lifecycle.py` ran against unchanged source first:
+**11 failed, 2 passed.**
+
+The two that passed are reported as passing rather than counted as red:
+
+- *Declaring contract_change still reopens a frozen contract* — STORY-010's
+  shipped rule, held here as a regression guard.
+- *No declarable state makes a blocked story permit a governed change* — already
+  true, because a blocked story is refused whatever it declares.
+
+Both are guards against over-refusal, and permitting is what the repository
+already did. Claiming them as red would have inflated the evidence.
+
+### Three shipped tests failed, and the rule changed rather than the tests
+
+The first full-suite run after the new tests went green was **3 failed, 353
+passed**. All three were existing tests, and all three were right:
+
+- `test_a_story_whose_contract_cannot_be_evaluated_stays_editable` (STORY-010)
+  and `test_a_change_touching_only_exempt_paths_needs_no_story` — a path naming a
+  story directory that does not exist was being refused as an unreadable record.
+- `test_a_story_that_cannot_be_evaluated_refuses_rather_than_raising` — the new
+  question fired ahead of `story.read_state()`'s "not declarable" refusal and
+  replaced a more precise message with a vaguer one.
+
+The fix was in `lifecycle_report()`, not in the tests: it now returns *unanswered*
+for a story directory that does not exist, and defers to `read_state()` when
+`declared_state` is not declarable at all. A story directory that exists but has
+lost its `state.json` is still refused, so deleting the record is not cheaper
+than corrupting it.
+
+No existing test was modified.
+
+### Exercised against this repository
+
+Not only against fixtures:
+
+- hand-writing `contract_change` into `.amigos/stories/STORY-007/state.json` and
+  then editing its `acceptance.feature` is refused, where before this story the
+  edit was permitted;
+- deleting a committed history entry from that record is refused;
+- deleting the record entirely is refused;
+- `amigos state STORY-010` reports the record consistent, exit 0.
+
+### Verification
+
+```text
+python -m pytest -q        356 passed  (343 before, 13 new)
+amigos check STORY-011     exit 0, ready
+amigos verify STORY-011    exit 0, verified: true, baseline c35704b92426
+amigos status              exit 0, ten stories ready
+amigos gate                permitted - story STORY-011 (branch name) is ready
+```
+
+### Discrepancies
+
+- `constraints.md` lists `tests/fixtures/stories/RUNNING-001/state.json` as a
+  record the rule rejects and says making it coherent should be planned rather
+  than discovered. It was left as it is: the rule lives in the gate, no test
+  reaching that fixture runs the gate, and editing it would have changed a
+  fixture no scenario covers. It stays a non-blocking question.
+- `constraints.md` names `gate._git_bytes()` and `verify.work_tree_root()` as the
+  dependencies for reading the committed copy. Both were used, but through a new
+  `_work_tree_relative()` helper the contract did not anticipate.
+- The contract's In Scope names only `docs/component-design/gate.md` for the
+  record. The version docs under `docs/versions/v0.6-strong-enforcement/` were
+  also updated, as the repository's standing documentation workflow requires.
+
 ## Follow-ups
 
 - README section 14 still tells `/implement` to read `dor.json` for readiness.
@@ -189,3 +314,16 @@ amigos gate --staged         permitted, STORY-010 (branch name)
 - `.amigos/config.json` is an unguarded off switch for the contract freeze. It is
   the sibling of gap 5 and is owned by neither gap 5 nor STORY-010.
 - README section 19 still describes the no-contract-edit rule as text only.
+- `schemas/state.schema.json` is enforced only by `tests/test_dogfooding.py`,
+  over an allowlist of story ids, so this repository holds itself to a check it
+  does not ship to adopters.
+- `amigos state --set` accepts a transition with no `--note`, so a sanctioned
+  reopening can carry no reason at all.
+- `tests/fixtures/stories/RUNNING-001/state.json` declares `amigos_running` while
+  its only history entry is `draft`, which the shipped rule rejects. Harmless
+  today; a trap for the next gate test written over that fixture.
+- A history rewrite committed with `--no-verify` is invisible afterwards, because
+  the append-only comparison is against HEAD. The commit is refused at the
+  pre-commit adapter, so it takes a second deliberate bypass. Gap 4.
+- The `amigos` console script is not installed in the development environment;
+  the git hooks work regardless because they insert `src/` on `sys.path`.

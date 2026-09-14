@@ -25,10 +25,36 @@ harmless ones.
 That question fails **open**, the opposite of this module's default: a path is
 refused only when the story that owns it demonstrably evaluates ready. A
 contract that cannot be evaluated stays editable, or it could never be repaired.
+
+STORY-011 added a third question, and it is what stops the second from being
+lifted by a text editor. Reopening a frozen contract means declaring
+``contract_change`` in ``state.json``, and nothing looked at that file twice: a
+declaration written by hand reads exactly like one the protocol produced. So the
+gate now asks whether a story's lifecycle record holds together — whether
+``declared_state`` and ``updated_at`` are the ones its last history entry
+records, and whether the committed history is still a prefix of the current one
+— and refuses every governed write for a story whose record does not.
+
+Equality with the committed copy could not carry that rule. ``state.json`` is
+*supposed* to move, and a story mid-drafting has uncommitted transitions by
+design, so "differs from HEAD" is the normal case here rather than the signal.
+
+Two limits are deliberate. The refusal is a gate decision and never a readiness
+verdict: routing it through readiness would invert it, because a story reported
+not ready has its contract *released* by the rule above. And a write to a story's
+own ``state.json`` stays permitted however broken that record is, because
+``set_state()`` parses the file before writing it, so a damaged record could
+otherwise never be repaired.
+
+What it cannot catch is a well-formed forgery. There is no key, no signature and
+no writer identity, so an appended entry naming a declarable state and a
+plausible timestamp is byte-identical to one the command would have written.
+This detects an unrecorded change, not hand authorship.
 """
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import shutil
@@ -46,6 +72,15 @@ ENV_VAR = "AMIGOS_STORY"
 PERMITTED = 0
 REFUSED = 1
 UNAVAILABLE = 2
+
+LIFECYCLE_FILE = "state.json"
+
+# Why a lifecycle record does not hold together. The first three are
+# statements about the record itself; the fourth is the record being gone.
+LIFECYCLE_DECLARATION = "declaration-not-recorded"
+LIFECYCLE_TIMESTAMP = "timestamp-not-recorded"
+LIFECYCLE_HISTORY = "history-rewritten"
+LIFECYCLE_UNREADABLE = "unreadable"
 
 SOURCE_ENV = "environment"
 SOURCE_POINTER = "pointer file"
@@ -72,6 +107,7 @@ class Decision:
     story_source: str | None = None
     state: str | None = None
     frozen: list[dict] = field(default_factory=list)
+    lifecycle: list[dict] = field(default_factory=list)
 
     @property
     def exit_code(self) -> int:
@@ -87,6 +123,7 @@ class Decision:
             "story_source": self.story_source,
             "state": self.state,
             "frozen": self.frozen,
+            "lifecycle": self.lifecycle,
         }
 
 
@@ -205,10 +242,10 @@ def resolve_story(config: Config, override: str | None = None) -> tuple[str | No
 # Contract files of a ready story
 # --------------------------------------------------------------------------
 
-def contract_file(config: Config, path: str) -> tuple[str, str] | None:
-    """``(story_id, file name)`` when ``path`` is a contract input, else ``None``.
+def story_file(config: Config, path: str) -> tuple[str, str] | None:
+    """``(story_id, file name)`` when ``path`` sits directly in a story directory.
 
-    A path is a contract file by its **location under ``config.stories_dir``**,
+    A path belongs to a story by its **location under ``config.stories_dir``**,
     never by its name. ``stories_dir`` is configurable and ``--stories-dir`` can
     point at a corpus outside the git work tree, so the literal prefix
     ``.amigos/stories/`` decides nothing.
@@ -226,9 +263,25 @@ def contract_file(config: Config, path: str) -> tuple[str, str] | None:
     if len(relative.parts) != 2:
         return None
     story_id, name = relative.parts
-    if name not in story.HASHED_FILES or not story.STORY_ID_RE.match(story_id):
+    if not story.STORY_ID_RE.match(story_id):
         return None
     return story_id, name
+
+
+def contract_file(config: Config, path: str) -> tuple[str, str] | None:
+    """``(story_id, file name)`` when ``path`` is one of the four contract inputs."""
+    resolved = story_file(config, path)
+    if resolved is None or resolved[1] not in story.HASHED_FILES:
+        return None
+    return resolved
+
+
+def lifecycle_file(config: Config, path: str) -> str | None:
+    """The story id when ``path`` is that story's ``state.json``, else ``None``."""
+    resolved = story_file(config, path)
+    if resolved is None or resolved[1] != LIFECYCLE_FILE:
+        return None
+    return resolved[0]
 
 
 def _git_bytes(root: Path, *args: str) -> bytes:
@@ -325,6 +378,224 @@ def _frozen_reason(frozen: list[dict]) -> str:
 
 
 # --------------------------------------------------------------------------
+# The lifecycle record
+# --------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class LifecycleReport:
+    """Whether one story's ``state.json`` holds together.
+
+    ``findings`` are ``(rule, message)`` pairs. ``unanswered`` names questions
+    git could not answer — a story never committed, or no work tree — which must
+    read as neither clean nor tampered.
+    """
+
+    story_id: str
+    findings: tuple[tuple[str, str], ...] = ()
+    unanswered: tuple[str, ...] = ()
+
+    @property
+    def unreadable(self) -> bool:
+        return any(rule == LIFECYCLE_UNREADABLE for rule, _ in self.findings)
+
+    @property
+    def exit_code(self) -> int:
+        """0 consistent, 1 inconsistent, 2 could not read.
+
+        An unreadable record exits 2 because that is literally what happened,
+        while still refusing at the gate: "I could not tell" must never be a
+        cheaper unlock than "I looked".
+        """
+        if self.unreadable:
+            return UNAVAILABLE
+        if self.findings:
+            return REFUSED
+        if self.unanswered:
+            return UNAVAILABLE
+        return PERMITTED
+
+    def as_dicts(self) -> list[dict]:
+        return [{"story_id": self.story_id, "rule": rule, "message": message}
+                for rule, message in self.findings]
+
+
+def _work_tree_relative(config: Config, path: Path) -> tuple[Path, str]:
+    from . import verify  # local: verify imports this module.
+
+    root = verify.work_tree_root(config)
+    try:
+        return root, path.resolve().relative_to(root).as_posix()
+    except ValueError as exc:
+        raise GateUnavailable(f"{path} is outside the work tree") from exc
+
+
+def _record_bytes(config: Config, directory: Path, staged: bool) -> bytes:
+    """The record as the change in hand would leave it.
+
+    For a staged set that is the index, so a rewritten ``state.json`` is judged
+    on what is about to be committed rather than on what happens to be on disk.
+    A file the index does not track falls back to disk.
+    """
+    path = directory / LIFECYCLE_FILE
+    if staged:
+        try:
+            root, relative = _work_tree_relative(config, path)
+            return _git_bytes(root, "show", f":{relative}")
+        except GateUnavailable:
+            pass
+    if not path.is_file():
+        raise GateUnavailable(f"{path}: missing")
+    return path.read_bytes()
+
+
+def _history_of(payload: dict) -> list[dict]:
+    history = payload.get("history")
+    if not isinstance(history, list):
+        return []
+    return [item for item in history if isinstance(item, dict)]
+
+
+def _internal_findings(payload: dict) -> list[tuple[str, str]]:
+    """What ``set_state()`` guarantees, checked against what the file says."""
+    declared = payload.get("declared_state")
+    history = _history_of(payload)
+    if not history:
+        return [(LIFECYCLE_DECLARATION,
+                 f"{LIFECYCLE_FILE} declares {declared!r}, which its history does "
+                 f"not record: the history is empty")]
+
+    findings: list[tuple[str, str]] = []
+    last = history[-1]
+    if last.get("state") != declared:
+        findings.append((
+            LIFECYCLE_DECLARATION,
+            f"{LIFECYCLE_FILE} declares {declared!r}, which its history does not "
+            f"record; the last entry records {last.get('state')!r} "
+            f"at {last.get('at')}",
+        ))
+    if last.get("at") != payload.get("updated_at"):
+        findings.append((
+            LIFECYCLE_TIMESTAMP,
+            f"{LIFECYCLE_FILE} updated_at {payload.get('updated_at')!r} is not the "
+            f"time its last history entry records ({last.get('at')!r})",
+        ))
+    return findings
+
+
+def _history_findings(committed: list[dict], current: list[dict]) -> list[tuple[str, str]]:
+    """The committed history must still be a prefix of the current one.
+
+    Equality cannot carry this rule: ``state.json`` is supposed to gain entries,
+    and a story mid-drafting has uncommitted transitions by design.
+    """
+    for index, past in enumerate(committed):
+        if index >= len(current) or current[index] != past:
+            return [(LIFECYCLE_HISTORY,
+                     f"{LIFECYCLE_FILE} no longer records the {past.get('state')!r} "
+                     f"entry committed at {past.get('at')}")]
+    return []
+
+
+def lifecycle_report(config: Config, story_id: str, staged: bool = False) -> LifecycleReport:
+    """Does this story's lifecycle record hold together?
+
+    Writes nothing, and never consults ``dor.json``: this asks about the record
+    an agent writes, not about the verdict derived from it.
+    """
+    directory = config.story_dir(story_id)
+    if not directory.is_dir():
+        # Not a story at all, so there is no record here that could fail to hold
+        # together. STORY-010 already decided that a contract which cannot be
+        # evaluated stays editable; this must not quietly reverse that.
+        return LifecycleReport(story_id, (), ("there is no such story directory",))
+
+    try:
+        payload = json.loads(_record_bytes(config, directory, staged))
+        if not isinstance(payload, dict):
+            raise ValueError("expected a JSON object")
+    except (GateUnavailable, OSError, ValueError) as exc:
+        return LifecycleReport(
+            story_id,
+            ((LIFECYCLE_UNREADABLE, f"{LIFECYCLE_FILE} cannot be read: {exc}"),),
+        )
+
+    if payload.get("declared_state") not in story.DECLARABLE_STATES:
+        # Refused upstream by story.read_state(), in more precise words than
+        # this rule could offer: declaring a state you do not own is a louder
+        # failure than declaring one your history does not record, and it
+        # already has an implementation. One rule, one implementation.
+        return LifecycleReport(
+            story_id, (),
+            (f"{LIFECYCLE_FILE} declares "
+             f"{payload.get('declared_state')!r}, which is not declarable",))
+
+    findings = _internal_findings(payload)
+    try:
+        root, relative = _work_tree_relative(config, directory / LIFECYCLE_FILE)
+        committed = _history_of(json.loads(_git_bytes(root, "show", f"HEAD:{relative}")))
+    except (GateUnavailable, OSError, ValueError):
+        return LifecycleReport(
+            story_id, tuple(findings),
+            (f"{LIFECYCLE_FILE} has no committed copy to compare against",),
+        )
+    return LifecycleReport(
+        story_id, tuple(findings + _history_findings(committed, _history_of(payload))))
+
+
+def lifecycle_refusals(
+    config: Config,
+    paths: list[str],
+    override: str | None = None,
+    staged: bool = False,
+) -> list[dict]:
+    """The stories in this change whose lifecycle record refuses it.
+
+    A story is implicated strictly when the change touches its contract or when
+    it is the resolved story for a governed path. It is implicated *leniently*
+    when the only thing touched is its own ``state.json`` — that write is how a
+    damaged record gets repaired, since ``set_state()`` parses the file before
+    writing it. Erasing committed history is never repair, so that one finding
+    refuses either way.
+    """
+    strict: dict[str, bool] = {}
+    governed, _ = classify(paths, config)
+
+    for path in paths:
+        contract = contract_file(config, path)
+        if contract is not None:
+            strict[contract[0]] = True
+            continue
+        named = lifecycle_file(config, path)
+        if named is not None:
+            strict.setdefault(named, False)
+
+    if governed:
+        story_id, _, _ = resolve_story(config, override)
+        if story_id is not None:
+            strict[story_id] = True
+
+    refusals: list[dict] = []
+    for story_id, is_strict in strict.items():
+        report = lifecycle_report(config, story_id, staged=staged)
+        offending = report.findings if is_strict else tuple(
+            finding for finding in report.findings if finding[0] == LIFECYCLE_HISTORY)
+        refusals.extend({"story_id": story_id, "rule": rule, "message": message}
+                        for rule, message in offending)
+    return refusals
+
+
+def _lifecycle_reason(refusals: list[dict]) -> str:
+    stories = sorted({entry["story_id"] for entry in refusals})
+    detail = "; ".join(entry["message"] for entry in refusals[:3])
+    if len(stories) == 1:
+        subject = f"story {stories[0]}'s lifecycle record does not hold together"
+    else:
+        subject = (f"the lifecycle records of {', '.join(stories)} "
+                   "do not hold together")
+    return f"{subject}: {detail}"
+
+
+# --------------------------------------------------------------------------
 # The decision
 # --------------------------------------------------------------------------
 
@@ -341,6 +612,17 @@ def decide(
     not landed, ``HEAD`` for a set already in the index.
     """
     governed, exempt = classify(paths, config)
+
+    # Asked first: the freeze below reads state.json live, so a record that does
+    # not hold together makes that verdict untrustworthy rather than merely
+    # inconvenient.
+    lifecycle = lifecycle_refusals(config, paths, override=override, staged=staged)
+    if lifecycle:
+        return Decision(
+            permitted=False,
+            reason=_lifecycle_reason(lifecycle),
+            governed=governed, exempt=exempt, lifecycle=lifecycle,
+        )
 
     frozen = frozen_contracts(config, paths, staged=staged)
     if frozen:
