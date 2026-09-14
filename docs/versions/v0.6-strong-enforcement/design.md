@@ -5,7 +5,7 @@ The milestone's stories, in order, with the first one designed in full.
 | Story | Scope | Status |
 |---|---|---|
 | STORY-009 | Contract immutability: the baseline moves to git history | contracted |
-| — | The gate refuses a contract edit while a story is ready | not contracted |
+| STORY-010 | The gate refuses a contract edit while a story is ready | contracted |
 | — | Enforcement outside the session: CI over a push range | not contracted |
 | — | Governed writes made through `Bash` | not contracted |
 | — | Blocked stories and a hand-edited `state.json` | not contracted |
@@ -139,3 +139,75 @@ whose edges are undocumented invites false confidence.
   addition: edit-time and commit-time refusal are different rules, and a
   commit-time refusal scoped to the story directory would refuse this project's
   own closeout commits.
+
+
+---
+
+## STORY-010 — the gate refuses a contract edit while a story is ready
+
+### A second question, not a wider exempt set
+
+`.amigos/**` must stay exempt. Removing it gates the work that makes a story
+ready, and a story could then never become ready at all. So the refusal is asked
+**alongside** classification rather than expressed through it:
+
+```text
+  decide(paths, staged)
+        |
+        +-- frozen_contracts()  a contract file whose story was ready
+        |         |             BEFORE this change            -> refused
+        |
+        +-- classify()          governed unless exempt
+        +-- resolve_story()     env > pointer > branch
+        +-- dor.evaluate()      recomputed, never read
+```
+
+`classify()` could not carry it. `verify._governed_in()` calls that function over
+**historical** commits to derive STORY-009's baseline, so a classification that
+consulted present-day readiness would judge yesterday's commits by today's state
+and move the baseline STORY-009 was built to fix.
+
+### Before the change
+
+```text
+  edit time    working tree      still holds the pre-edit contract
+  commit time  HEAD              the tree already holds the edited one
+```
+
+This is the decision the three roles converged on independently and none could
+resolve. An edit that deletes a counterexample leaves the story unready, so a
+rule that derives readiness from the edited content permits exactly the edit it
+exists to refuse, and refuses only the harmless ones.
+
+Reading `HEAD` at commit time also disposes of the deadlock the milestone's own
+design predicted. A contract absent from `HEAD` was never committed, so there is
+nothing to protect and the commit that first records a ready contract is
+permitted — without a special case for it.
+
+`state.json` is read live, not from `HEAD`. It is not a contract input file, and
+it is the control the protocol already offers: declaring `contract_change`
+reopens the contract without having to commit that declaration first.
+
+### Failing open, on purpose
+
+The gate's default is fail-closed. This rule inverts it: only a story that
+**demonstrably** evaluates ready freezes its contract. Unparseable Gherkin, a
+missing file, or a story id with no directory all leave the contract editable,
+because a broken contract that cannot be repaired is worse than one that can be
+edited.
+
+The cost is real and is written down rather than discovered: corrupting
+`state.json` lifts the refusal. So does writing `contract_change` into it by
+hand, which is available anyway — both are gap 8, task 5 of this milestone.
+
+### What this still does not catch
+
+- **`.amigos/config.json`.** It carries `gate.exempt` and `stories_dir`, it is
+  itself exempt, and a ready story permits editing it. It is the same shape as
+  the `.claude/settings.json` hole, which gap 5 owns, and it is named by neither.
+- **A deletion in the working tree.** `staged_paths()` now collects `D`;
+  `working_tree_paths()` does not, so `amigos gate` with no arguments still
+  misses one.
+- **Writes through `Bash`, and `--no-verify`.** Gaps 6 and 4. An edit-time rule
+  that the tool never reaches is not an edit-time rule, which is why the refusal
+  holds at commit time too.

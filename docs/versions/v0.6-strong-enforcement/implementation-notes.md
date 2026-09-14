@@ -86,6 +86,95 @@ amigos status                exit 0, all eight stories ready
 amigos gate --staged         permitted, STORY-009 (branch name)
 ```
 
+## STORY-010 — the gate refuses a contract edit while a story is ready
+
+Built by running `/implement` against a contract this session drafted through
+`/amigos` but did not author by hand. The run record is at
+`.amigos/runs/STORY-010/2026-09-14T06-41-36Z/implementation.md`.
+
+### What was built
+
+| Piece | What it is |
+|---|---|
+| `gate.contract_file()` | A changed path mapped to `(story_id, file)` through `config.stories_dir`, never through the literal prefix `.amigos/stories/` |
+| `gate._ready_before_change()` | The working tree at edit time, `HEAD` at commit time, failing open on anything unevaluable |
+| `gate._ready_at_head()` | The four contract inputs read from `HEAD`, the live `state.json` beside them, evaluated through an overridden `stories_dir` |
+| `gate.frozen_contracts()` | One verdict per story however many of its files were touched |
+| `Decision.frozen` | Additive in `--json`; `story_id` keeps meaning the resolved active story |
+| `cli._gate()` | A frozen-contract refusal names the reopening route, not `Make the story ready` |
+| `tests/test_gate_contract_freeze.py` | 11 cases: one per scenario, plus the CLI surface for scenario 1's last `Then` |
+
+### Decisions taken during implementation
+
+**A second question, not a wider exempt set.** `classify()` keeps its path-only,
+time-independent meaning because `verify._governed_in()` runs it over historical
+commits. Expressing the freeze as "a ready story's contract is governed" would
+have judged past commits by present-day readiness and moved the baseline
+STORY-009 was built to fix. The rule is asked alongside classification instead.
+
+**The fail-open direction is inverted from the gate's default, so it is stated.**
+Only a story that demonstrably evaluates ready freezes its contract. That is not
+a weakening chosen for convenience: a contract with unparseable Gherkin must stay
+editable or it can never be repaired.
+
+**`_git_bytes()` in `gate.py` rather than reusing `verify._git`.** The contract's
+Dependencies names `verify`'s helpers, and `verify.work_tree_root()` is used
+through a function-local import — `verify` imports `gate`, so the module-level
+direction is fixed. The blob read is separate because `verify._git` raises
+`NoBaseline`, which exits 2, and the gate needs to fail *open* here rather than
+report that it could not tell.
+
+### The three tests that passed before the implementation
+
+`tests/test_gate_contract_freeze.py` was run red first and reported
+`8 failed, 3 passed`. The three passing ones are the over-refusal guards — a
+not-ready story keeps an editable contract, an unevaluable story stays editable,
+scaffolding stays permitted.
+
+They are recorded as passing rather than as red. Permitting is what the
+repository already did, so they proved nothing before the change; their value is
+that they must still pass afterwards, which is the direction this story was most
+likely to break. Counting them as red would have inflated the red-before-green
+evidence, which is the one claim the phase exists to make honestly.
+
+### The rule was exercised against this repository, not only fixtures
+
+```text
+amigos gate --changed-file .amigos/stories/STORY-007/acceptance.feature
+  refused - story STORY-007 is ready and its contract may not be edited
+amigos gate --changed-file .amigos/stories/STORY-010/intent.md
+  refused - story STORY-010 is ready and its contract may not be edited
+```
+
+The second is the story freezing its own contract, which is the intended outcome
+and held for the rest of the run.
+
+### Reported rather than done
+
+- `working_tree_paths()` still omits deletions. The contract names
+  `staged_paths()` and scenario 9 is a staged deletion, so only that collector
+  changed. Recorded in `gate.md`'s known holes.
+- `.amigos/config.json` carries `gate.exempt`, is itself exempt, and a ready
+  story still permits editing it — an unguarded off switch for this very rule.
+  Named in `open-questions.md` and in `gate.md`.
+- `tests/test_dogfooding.py` still omits STORY-006, STORY-009 and STORY-010.
+
+### Scope expansion
+
+`skills/implement/SKILL.md:20` claimed the no-contract-edit rule *"has to hold
+without enforcement"*. That became false when this story landed, and
+`constraints.md` lists the file under Relevant Components with that exact note.
+Corrected to name the gate and the reopening route. No scenario asked for it.
+
+### Verification results
+
+```text
+python -m pytest -q          343 passed (332 before)
+amigos verify STORY-010      exit 0, baseline a39d44861080, four files MATCH
+amigos status                exit 0, all nine stories ready
+amigos gate --staged         permitted, STORY-010 (branch name)
+```
+
 ## Follow-ups
 
 - README section 14 still tells `/implement` to read `dor.json` for readiness.
@@ -95,3 +184,8 @@ amigos gate --staged         permitted, STORY-009 (branch name)
   about partial work surviving a contract conflict. Still open.
 - Decide whether v0.5's implementation notes should record that STORY-006 no
   longer verifies under the v0.6 baseline.
+- `working_tree_paths()` does not collect deletions, so `amigos gate` with no
+  arguments misses a contract file deleted in the working tree.
+- `.amigos/config.json` is an unguarded off switch for the contract freeze. It is
+  the sibling of gap 5 and is owned by neither gap 5 nor STORY-010.
+- README section 19 still describes the no-contract-edit rule as text only.

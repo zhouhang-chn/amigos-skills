@@ -15,11 +15,11 @@ README section 18:
                             |
                     gate.decide()
                             |
-        +-------------------+-------------------+
-        |                   |                   |
-  governed paths?     active story?      dor.evaluate()
-  (fail closed)       (env > file >      (recomputed,
-                       branch)            never read)
+        +--------------+----+-----------+---------------+
+        |              |                |               |
+  a ready story's  governed        active story?   dor.evaluate()
+  contract file?   paths?          (env > file >   (recomputed,
+  (fails OPEN)     (fail closed)    branch)         never read)
 ```
 
 Adapters collect changed paths, call the decision, and translate the exit code
@@ -57,6 +57,9 @@ The exempt set is exactly the work that makes a story ready. Gating the contract
 files would deadlock the protocol: a story could never become ready, because
 becoming ready requires editing a story.
 
+That exemption is also what left a *finished* contract unprotected, which is
+what [the next section](#a-ready-storys-contract-is-frozen) closes.
+
 Everything else is governed, including directories that do not exist yet. An
 allowlist would leave every new directory unguarded until somebody remembered to
 add it, so the gate would erode silently. Fail-closed is noisy exactly once, at
@@ -85,6 +88,60 @@ reasons, and the second is the important one:
 2. `dor.json` is writable by the very agent being gated. An agent that could
    grant itself passage by writing a file would not be gated at all.
 
+## A ready story's contract is frozen
+
+Closed in v0.6 by STORY-010. `.amigos/**` stays exempt — removing it deadlocks
+the protocol — so this is a **second question asked alongside classification**,
+not a change to what `governed` means. `classify()` keeps its path-only,
+time-independent semantics because `verify` runs it over historical commits to
+derive a baseline; a classification that consulted present-day readiness would
+judge yesterday's commits by today's state.
+
+```text
+a changed path under stories_dir, named intent.md, constraints.md,
+acceptance.feature or open-questions.md
+        |
+        +-- was the story ready BEFORE this change?  -- no --> permitted
+                    |                                            (fails open)
+                   yes
+                    |
+                 refused
+```
+
+**Before the change** is the whole of it. At edit time the working tree still
+holds the pre-edit contract, so the tree answers. At commit time the tree already
+holds the *edited* contract, so `HEAD` answers. Deriving it from the edited
+content would permit the most damaging edits and refuse only the harmless ones:
+deleting a counterexample is itself an edit that leaves a story unready.
+
+This also settles the case that would otherwise deadlock the protocol a second
+time. A contract absent from `HEAD` has never been committed, so there is nothing
+to protect and the commit that first records a ready contract is permitted.
+
+`state.json` is read live and is deliberately **not** a contract input file. It
+is the control the protocol offers: declaring `contract_change` withholds
+readiness and reopens the contract, without having to commit that declaration
+first. `dor.json` stays writable for the same structural reason — the validator
+is its only writer, and `amigos check` rewrites it on every run.
+
+### It fails open, and that is deliberate
+
+The gate's default is fail-closed. This one rule inverts it: a path is refused
+only when the story that owns it **demonstrably** evaluates ready. A contract
+with unparseable Gherkin, a missing file, or a story id with no directory is not
+ready, and stays editable — otherwise a broken contract could never be repaired.
+
+The cost is stated rather than hidden: corrupting `state.json` lifts the refusal.
+So does writing `contract_change` into it by hand. Both are gap 8, and neither is
+made worse by failing open, because the second is available anyway.
+
+### What the refusal says
+
+The existing refusal ends with `Make the story ready, then retry`. Under this
+rule that guidance is backwards — the change is refused *because* the story is
+ready — so a frozen-contract refusal names the story, the file, and
+`amigos state <id> --set contract_change` instead.
+
 ## Exit codes
 
 | Code | Meaning | Adapter behaviour |
@@ -107,6 +164,8 @@ confidence.
 | An agent can edit `.claude/settings.json` and disable the in-session hook | True of every in-session hook; the pre-commit hook is the backstop | v0.6, via CI that cannot be reached from the session |
 | `git commit --no-verify` skips the pre-commit hook | True of every pre-commit hook | v0.6, via CI |
 | Writes through `Bash` are not gated | Recorded as a non-blocking open question rather than fixed speculatively | to be decided on evidence |
+| `.amigos/config.json` carries `gate.exempt` and is itself exempt, so a ready story permits switching this rule off | The same shape as the `.claude/settings.json` hole above, and no narrower | v0.6, with its sibling |
+| `working_tree_paths()` still omits deletions, so `amigos gate` with no arguments misses a deleted contract file | `staged_paths()` is the collector every commit goes through, and it was fixed by STORY-010 | not yet scheduled |
 
 The aim of this milestone is README section 18's wording exactly — that skipping
 the contract is *harder* than following it. Impossibility is a later problem.

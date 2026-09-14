@@ -17,7 +17,7 @@ These six hold for the whole run.
 
 | Never | Why | Held by |
 |---|---|---|
-| Edit `intent.md`, `constraints.md`, `acceptance.feature` or `open-questions.md` | The contract is what you are judged against. Editing it is marking your own exam. `.amigos/**` is exempt from the gate, so nothing stops you — this is the rule that has to hold without enforcement. | you, visible via `amigos verify` |
+| Edit `intent.md`, `constraints.md`, `acceptance.feature` or `open-questions.md` | The contract is what you are judged against. Editing it is marking your own exam. `.amigos/**` is exempt from the gate, but from v0.6 the gate refuses a contract edit while the story is ready. Reopen it with `amigos state <id> --set contract_change` if it genuinely must change. | the gate, and visible via `amigos verify` |
 | Write or edit `dor.json` | Readiness is derived. The validator is its only writer. | you |
 | Declare `ready` or `blocked` in `state.json` | Those are computed. `amigos state` refuses both. | code |
 | Take a `ready: true` out of `dor.json` as authority | That file is writable by the agent being gated and may be stale. Re-derive it. | you, and by `amigos verify` |

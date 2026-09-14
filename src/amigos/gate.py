@@ -8,14 +8,33 @@ Readiness is recomputed from the contract files on every call. A committed
 ``dor.json`` describes the contract as it was when the record was written, and
 it is writable by the very agent being gated, so it is a record and never an
 authority.
+
+STORY-010 added a second question, asked alongside the first. ``.amigos/**`` is
+exempt because gating the story directory would deadlock the protocol: a story
+can only become ready by editing a story. That single exemption also left a
+finished contract unprotected, so a contract input file of a story that is
+**ready** is refused even though its path is exempt.
+
+Readiness for that question is derived from the contract *before* the change:
+the working tree when an edit is attempted, ``HEAD`` when a staged set is
+committed. At commit time the tree already holds the edited contract, and
+deleting a counterexample is itself an edit that leaves a story unready — so a
+tree-derived rule would permit the most damaging edits and refuse only the
+harmless ones.
+
+That question fails **open**, the opposite of this module's default: a path is
+refused only when the story that owns it demonstrably evaluates ready. A
+contract that cannot be evaluated stays editable, or it could never be repaired.
 """
 
 from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
-from dataclasses import dataclass, field
+import tempfile
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from . import dor, story
@@ -52,6 +71,7 @@ class Decision:
     story_id: str | None = None
     story_source: str | None = None
     state: str | None = None
+    frozen: list[dict] = field(default_factory=list)
 
     @property
     def exit_code(self) -> int:
@@ -66,6 +86,7 @@ class Decision:
             "story_id": self.story_id,
             "story_source": self.story_source,
             "state": self.state,
+            "frozen": self.frozen,
         }
 
 
@@ -181,11 +202,153 @@ def resolve_story(config: Config, override: str | None = None) -> tuple[str | No
 
 
 # --------------------------------------------------------------------------
+# Contract files of a ready story
+# --------------------------------------------------------------------------
+
+def contract_file(config: Config, path: str) -> tuple[str, str] | None:
+    """``(story_id, file name)`` when ``path`` is a contract input, else ``None``.
+
+    A path is a contract file by its **location under ``config.stories_dir``**,
+    never by its name. ``stories_dir`` is configurable and ``--stories-dir`` can
+    point at a corpus outside the git work tree, so the literal prefix
+    ``.amigos/stories/`` decides nothing.
+
+    Relative paths are taken against ``config.root``, the same origin
+    :func:`classify` already assumes of everything it is handed.
+    """
+    candidate = Path(path)
+    if not candidate.is_absolute():
+        candidate = config.root / candidate
+    try:
+        relative = candidate.resolve().relative_to(config.stories_dir.resolve())
+    except (ValueError, OSError):
+        return None
+    if len(relative.parts) != 2:
+        return None
+    story_id, name = relative.parts
+    if name not in story.HASHED_FILES or not story.STORY_ID_RE.match(story_id):
+        return None
+    return story_id, name
+
+
+def _git_bytes(root: Path, *args: str) -> bytes:
+    try:
+        result = subprocess.run(["git", *args], cwd=root, capture_output=True, check=False)
+    except OSError as exc:
+        raise GateUnavailable(f"git is unavailable: {exc}") from exc
+    if result.returncode != 0:
+        raise GateUnavailable(f"git {' '.join(args)} failed")
+    return result.stdout
+
+
+def _ready_at_head(config: Config, story_id: str) -> bool:
+    """Readiness of the *committed* contract, with the declared state read live.
+
+    At commit time the working tree already holds the edited contract, so
+    deriving readiness from it would answer a question about the change using
+    the change itself. The four contract inputs therefore come from ``HEAD``.
+
+    ``state.json`` deliberately does not. It is not a contract input file, and
+    it is the live control the protocol offers: declaring ``contract_change``
+    reopens a contract without having to commit that declaration first.
+
+    A contract absent from ``HEAD`` has never been committed, so there is
+    nothing yet to protect and the commit that first records it is permitted.
+    """
+    from . import verify  # local: verify imports this module.
+
+    directory = config.story_dir(story_id)
+    root = verify.work_tree_root(config)
+    live_state = directory / "state.json"
+    if not live_state.is_file():
+        return False
+
+    with tempfile.TemporaryDirectory() as tmp:
+        staging = Path(tmp) / story_id
+        staging.mkdir()
+        for name in story.HASHED_FILES:
+            try:
+                relative = (directory / name).resolve().relative_to(root).as_posix()
+            except ValueError:
+                return False
+            (staging / name).write_bytes(_git_bytes(root, "show", f"HEAD:{relative}"))
+        shutil.copy(live_state, staging / "state.json")
+        return dor.evaluate(replace(config, stories_dir=Path(tmp)), story_id).ready
+
+
+def _ready_before_change(config: Config, story_id: str, staged: bool) -> bool:
+    """Did this story's contract evaluate ready *before* the change in hand?
+
+    Fails open. Only a story that demonstrably evaluates ready freezes its
+    contract; anything the gate cannot read leaves the contract editable, which
+    is what makes a broken contract repairable.
+    """
+    try:
+        if staged:
+            return _ready_at_head(config, story_id)
+        return dor.evaluate(config, story_id).ready
+    except (dor.StructuralError, story.StoryError, GateUnavailable, OSError):
+        return False
+
+
+def frozen_contracts(config: Config, paths: list[str], staged: bool = False) -> list[dict]:
+    """The contract files in ``paths`` whose story was ready before the change.
+
+    Each story is evaluated once however many of its files were touched.
+    """
+    frozen: list[dict] = []
+    verdicts: dict[str, bool] = {}
+    for path in paths:
+        resolved = contract_file(config, path)
+        if resolved is None:
+            continue
+        story_id, name = resolved
+        if story_id not in verdicts:
+            verdicts[story_id] = _ready_before_change(config, story_id, staged)
+        if verdicts[story_id]:
+            frozen.append({"path": path, "story_id": story_id, "file": name})
+    return frozen
+
+
+def _frozen_reason(frozen: list[dict]) -> str:
+    stories = sorted({entry["story_id"] for entry in frozen})
+    listed = ", ".join(sorted({f"{e['story_id']}/{e['file']}" for e in frozen}))
+    if len(stories) == 1:
+        subject = f"story {stories[0]} is ready and its contract may not be edited"
+    else:
+        named = ", ".join(stories)
+        subject = f"stories {named} are ready and their contracts may not be edited"
+    return (
+        f"{subject}: {listed}. Reopen it first: "
+        f"amigos state {stories[0]} --set contract_change"
+    )
+
+
+# --------------------------------------------------------------------------
 # The decision
 # --------------------------------------------------------------------------
 
-def decide(config: Config, paths: list[str], override: str | None = None) -> Decision:
+def decide(
+    config: Config,
+    paths: list[str],
+    override: str | None = None,
+    staged: bool = False,
+) -> Decision:
+    """Decide one change set.
+
+    ``staged`` says where the change lives, which is what decides where the
+    *pre-change* contract is read from: the working tree for an edit that has
+    not landed, ``HEAD`` for a set already in the index.
+    """
     governed, exempt = classify(paths, config)
+
+    frozen = frozen_contracts(config, paths, staged=staged)
+    if frozen:
+        return Decision(
+            permitted=False,
+            reason=_frozen_reason(frozen),
+            governed=governed, exempt=exempt, frozen=frozen,
+        )
 
     if not governed:
         return Decision(
@@ -252,7 +415,7 @@ def _git(root: Path, *args: str) -> list[str]:
 
 
 def staged_paths(root: Path) -> list[str]:
-    return _git(root, "diff", "--cached", "--name-only", "--diff-filter=ACMRT")
+    return _git(root, "diff", "--cached", "--name-only", "--diff-filter=ACMRTD")
 
 
 def working_tree_paths(root: Path) -> list[str]:

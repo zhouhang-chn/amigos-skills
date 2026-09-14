@@ -298,7 +298,7 @@ def _gate(cfg: config_module.Config, args: argparse.Namespace) -> int:
     else:
         paths = gate_module.working_tree_paths(cfg.root)
 
-    decision = gate_module.decide(cfg, paths, override=args.story)
+    decision = gate_module.decide(cfg, paths, override=args.story, staged=args.staged)
 
     if args.as_json:
         print(json.dumps(decision.as_dict(), indent=2))
@@ -310,6 +310,23 @@ def _gate(cfg: config_module.Config, args: argparse.Namespace) -> int:
 
     print(f"gate: refused - {decision.reason}", file=sys.stderr)
     print(file=sys.stderr)
+
+    if decision.frozen:
+        # A contract edit is refused because the story IS ready, so the usual
+        # "make the story ready" guidance would send the caller the wrong way.
+        print("contract files of a ready story in this change:", file=sys.stderr)
+        for entry in decision.frozen[:20]:
+            print(f"  {entry['path']}", file=sys.stderr)
+        if len(decision.frozen) > 20:
+            print(f"  ... and {len(decision.frozen) - 20} more", file=sys.stderr)
+        print(file=sys.stderr)
+        print("Reopen the contract before changing it:", file=sys.stderr)
+        for story_id in sorted({e["story_id"] for e in decision.frozen}):
+            print(f"  amigos state {story_id} --set contract_change --note \"<why>\"",
+                  file=sys.stderr)
+        print("Then re-contract through the amigos skill.", file=sys.stderr)
+        return decision.exit_code
+
     print("governed paths in this change:", file=sys.stderr)
     for path in decision.governed[:20]:
         print(f"  {path}", file=sys.stderr)
